@@ -1,16 +1,25 @@
-from pathlib import Path
-import pickle
+import os
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from dotenv import load_dotenv
+from backend.app.routes import recommend  # your existing router
+
+# Load the project root .env
+load_dotenv()  # automatically loads .env from project root
 
 app = FastAPI()
 
-# Correct path to the model
-MODEL_PATH = Path(__file__).resolve().parents[1] / "models" / "cbf.pkl"
+# Use the FRONTEND_URL from .env
+frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
 
-with open(MODEL_PATH, "rb") as f:
-    cbf_model = pickle.load(f)
+# Add CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[frontend_url],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-@app.get("/recommend/cbf/{user_id}")
-def recommend_cbf(user_id: int, top_n: int = 10):
-    recs = cbf_model.get_recommendations_for_user(user_id, top_n=top_n)
-    return {"recommendations": recs}
+# Include your routes
+app.include_router(recommend.router, prefix="/recommend", tags=["Recommend"])

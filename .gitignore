@@ -16,9 +16,12 @@ datasets/
 *.npz
 
 # Backend env file
-backend/.env
+.env
 
 # Frontend junk
 frontend/node_modules/
 frontend/build/
 frontend/dist/
+
+# Frontend env
+frontend/.env

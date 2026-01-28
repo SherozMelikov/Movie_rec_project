@@ -1,4 +1,4 @@
-from backend.utils.cbf_model import CBFModel
+from backend.app.modules.cbf_model import CBFModel
 import pandas as pd
 import pickle
 from pathlib import Path

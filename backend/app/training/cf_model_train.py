@@ -1,4 +1,4 @@
-from backend.utils.cf_model import CFModel
+from backend.app.modules.cf_model import CFModel
 import pandas as pd
 import pickle
 from pathlib import Path
