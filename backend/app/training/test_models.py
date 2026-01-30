@@ -1,5 +1,5 @@
 import pickle
-from backend.app.modules.hybrid_model import HybridRecommender
+from backend.app.services.hybrid_model import HybridRecommender
 
 # Load saved models
 with open("backend/models/cbf.pkl", "rb") as f:

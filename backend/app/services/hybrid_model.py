@@ -1,4 +1,8 @@
 class HybridRecommender:
+    """
+    Combines a CBF model and a CF model into a weighted hybrid recommender.
+    Only returns {movie_id: score}.
+    """
     def __init__(self, cbf_model, cf_model, w_cbf=0.6, w_cf=0.4):
         self.cbf = cbf_model
         self.cf = cf_model
@@ -6,13 +10,17 @@ class HybridRecommender:
         self.w_cf = w_cf
 
     def recommend(self, user_id, top_n=10):
+        """
+        Returns a dictionary of top-N movie_id: score
+        """
         # Step 1: get raw recommendations
         cbf_recs = self.cbf.get_recommendations_for_user(user_id, top_n*2)
         cf_recs = self.cf.get_recommendations_for_user(user_id, top_n*2)
 
         # Step 2: normalize scores
         def normalize(scores):
-            if not scores: return {}
+            if not scores:
+                return {}
             max_score = max(scores.values())
             return {k: v / max_score for k, v in scores.items()}
 
@@ -29,13 +37,4 @@ class HybridRecommender:
         # Step 4: sort top-N
         top_hybrid = dict(sorted(hybrid_scores.items(), key=lambda x: x[1], reverse=True)[:top_n])
 
-        # Step 5: optional: map to titles for frontend
-        top_hybrid_with_titles = [
-            {
-                "movie_id": mid,
-                "title": self.cbf.movies.loc[self.cbf.movieid_to_idx[mid], "title"],
-                "score": score
-            }
-            for mid, score in top_hybrid.items()
-        ]
-        return top_hybrid_with_titles
+        return top_hybrid  # <-- clean, no titles, no API formatting

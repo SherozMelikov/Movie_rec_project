@@ -1,22 +1,23 @@
-from backend.app.modules.cf_model import CFModel
-import pandas as pd
 import pickle
+import pandas as pd
 from pathlib import Path
 
-# Paths
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
-DATA_DIR = PROJECT_ROOT / "datasets"
-MODELS_DIR = PROJECT_ROOT / "backend/models"
+from backend.app.services.cf_model import CFModel
+
+BASE_DIR = Path(__file__).resolve().parents[3]
+
+DATA_DIR = BASE_DIR / "datasets"
+MODELS_DIR = BASE_DIR / "backend/app/models_store"
 MODELS_DIR.mkdir(parents=True, exist_ok=True)
 
-# Load ratings
+print("Loading data...")
 ratings = pd.read_csv(DATA_DIR / "ratings.csv")
 
-# Initialize CFModel (this builds the user-item matrix and computes similarities)
+print("Training CF model...")
 cf_model = CFModel(ratings)
 
-# Save model
-with open(MODELS_DIR / "cf.pkl", "wb") as f:
+model_path = MODELS_DIR / "cf.pkl"
+with open(model_path, "wb") as f:
     pickle.dump(cf_model, f)
 
-print("CF model saved at:", MODELS_DIR / "cf.pkl")
+print(f"✅ CF model saved at: {model_path}")

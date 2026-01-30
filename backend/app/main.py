@@ -1,18 +1,18 @@
 import os
+from pathlib import Path
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
-from backend.app.routes import recommend  # your existing router
+from backend.app.api import recommend
 
-# Load the project root .env
-load_dotenv()  # automatically loads .env from project root
+# Load backend/.env
+env_path = Path(__file__).resolve().parent.parent / ".env"
+load_dotenv(dotenv_path=env_path)
 
 app = FastAPI()
 
-# Use the FRONTEND_URL from .env
 frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
 
-# Add CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[frontend_url],
@@ -21,5 +21,5 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include your routes
-app.include_router(recommend.router, prefix="/recommend", tags=["Recommend"])
+app.include_router(recommend.router, prefix="/recommendations", tags=["Recommend"])
+print(f"Frontend URL from .env: {frontend_url}")
