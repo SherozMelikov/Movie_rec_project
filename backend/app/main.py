@@ -1,25 +1,19 @@
-import os
-from pathlib import Path
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from dotenv import load_dotenv
-from backend.app.api import recommend
-
-# Load backend/.env
-env_path = Path(__file__).resolve().parent.parent / ".env"
-load_dotenv(dotenv_path=env_path)
+from backend.app.api import users, ratings, likes, preferences, recommendations
 
 app = FastAPI()
 
-frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
-
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[frontend_url],
+    allow_origins=["http://localhost:3000"],
     allow_credentials=True,
     allow_methods=["*"],
-    allow_headers=["*"],
+    allow_headers=["*"]
 )
 
-app.include_router(recommend.router, prefix="/recommendations", tags=["Recommend"])
-print(f"Frontend URL from .env: {frontend_url}")
+app.include_router(users.router, prefix="/users", tags=["Users"])
+app.include_router(ratings.router, prefix="/ratings", tags=["Ratings"])
+app.include_router(likes.router, prefix="/likes", tags=["Likes"])
+app.include_router(preferences.router, prefix="/preferences", tags=["Preferences"])
+app.include_router(recommendations.router, prefix="/recommendations", tags=["Recommendations"])

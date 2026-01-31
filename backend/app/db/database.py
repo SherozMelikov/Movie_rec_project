@@ -1,8 +1,21 @@
-# app/db/database.py
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, declarative_base
+# backend/app/core/database.py
+from sqlalchemy import create_engine, MetaData
+from sqlalchemy.orm import sessionmaker
+import os
+from dotenv import load_dotenv
 
-SQLALCHEMY_DATABASE_URL = "postgresql://user:pass@localhost/moviedb"
-engine = create_engine(SQLALCHEMY_DATABASE_URL)
+load_dotenv()  # load DATABASE_URL from .env
+
+DATABASE_URL = os.getenv("DATABASE_URL")
+
+engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-Base = declarative_base()
+metadata = MetaData()
+
+# Dependency to use in FastAPI endpoints
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
