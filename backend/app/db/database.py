@@ -1,18 +1,23 @@
-# backend/app/core/database.py
-from sqlalchemy import create_engine, MetaData
-from sqlalchemy.orm import sessionmaker
 import os
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker, declarative_base
 from dotenv import load_dotenv
 
-load_dotenv()  # load DATABASE_URL from .env
+# Explicitly load the .env file
+dotenv_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), ".env")
+load_dotenv(dotenv_path)
 
 DATABASE_URL = os.getenv("DATABASE_URL")
+print("Loaded DATABASE_URL:", DATABASE_URL)
 
 engine = create_engine(DATABASE_URL)
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-metadata = MetaData()
 
-# Dependency to use in FastAPI endpoints
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+# ✅ Declarative base for models
+Base = declarative_base()
+
+# Dependency
 def get_db():
     db = SessionLocal()
     try:

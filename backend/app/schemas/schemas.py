@@ -1,7 +1,7 @@
 # app/schemas/schemas.py
 from pydantic import BaseModel, EmailStr
 from typing import Optional, List
-
+from datetime import datetime
 # -------------------
 # User Schemas
 # -------------------
@@ -17,8 +17,11 @@ class UserRead(BaseModel):
     email: EmailStr
 
     class Config:
-        orm_mode = True  # Allows reading data from SQLAlchemy models
+        orm_mode = True
 
+class UserLogin(BaseModel):
+    email: EmailStr
+    password: str
 # -------------------
 # Rating Schemas
 # -------------------
@@ -27,16 +30,14 @@ class RatingCreate(BaseModel):
     user_id: int
     movie_id: int
     rating: float
-
 class RatingRead(BaseModel):
     user_id: int
     movie_id: int
     rating: float
-    rated_at: Optional[str]  # ISO timestamp
+    rated_at: Optional[datetime]  # Pydantic will auto-convert to ISO8601 string
 
     class Config:
         orm_mode = True
-
 # -------------------
 # Like Schemas
 # -------------------
@@ -48,7 +49,7 @@ class LikeCreate(BaseModel):
 class LikeRead(BaseModel):
     user_id: int
     movie_id: int
-    liked_at: Optional[str]  # ISO timestamp
+    liked_at: Optional[datetime]  
 
     class Config:
         orm_mode = True
@@ -64,7 +65,7 @@ class UserPreferenceCreate(BaseModel):
 class UserPreferenceRead(BaseModel):
     user_id: int
     favorite_genres: str
-    created_at: Optional[str]
+    created_at: Optional[datetime]
 
     class Config:
         orm_mode = True
