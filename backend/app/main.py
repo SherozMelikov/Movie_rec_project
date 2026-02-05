@@ -12,6 +12,9 @@ from app.services.rating_service import RatingService
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     print("🚀 Starting FastAPI app...")
+    
+    create_tables()  # 👈 THIS creates movies/users/ratings tables in Render DB
+
 
     model_loader = ModelLoader()
     recommendation_service = RecommendationService(model_loader)
@@ -40,3 +43,14 @@ app.add_middleware(
 app.include_router(users.router, prefix="/users", tags=["Users"])
 app.include_router(rating.router, prefix="/ratings", tags=["Ratings"])
 app.include_router(recommendations.router, prefix="/recommendations", tags=["Recommendations"])
+
+
+
+
+
+from app.db.database import create_tables
+from contextlib import asynccontextmanager
+from fastapi import FastAPI
+
+
+
