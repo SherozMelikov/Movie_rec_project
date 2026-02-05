@@ -2,7 +2,7 @@ import pickle
 import pandas as pd
 from pathlib import Path
 
-from backend.app.services.cbf_model import DynamicCBF
+from app.services.cbf_model import DynamicCBF
 
 BASE_DIR = Path(__file__).resolve().parents[3]
 

@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Request
-from backend.app.schemas.schemas import RatingCreate
+from app.schemas.schemas import RatingCreate
 
 router = APIRouter()
 

@@ -1,5 +1,5 @@
-from backend.app.services.cbf_model import DynamicCBF
-from backend.app.services.cf_model import DynamicCF
+from app.services.cbf_model import DynamicCBF
+from app.services.cf_model import DynamicCF
 
 
 class DynamicHybridRecommender:
