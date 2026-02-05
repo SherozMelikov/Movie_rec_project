@@ -1,6 +1,6 @@
 # app/db/models.py
 from sqlalchemy import Column, Integer, String , JSON , Boolean
-from backend.app.db.database import Base
+from app.db.database import Base
 
 #Databse tables structure :
 

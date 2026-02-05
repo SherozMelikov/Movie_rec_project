@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
-from backend.app.db.database import get_db
-from backend.app.db.models import UserPreference
-from backend.app.schemas.schemas import UserPreferenceCreate, UserPreferenceRead
+from app.db.database import get_db
+from app.db.models import UserPreference
+from app.schemas.schemas import UserPreferenceCreate, UserPreferenceRead
 
 router = APIRouter()
 
