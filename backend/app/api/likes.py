@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
-from app.db.database import get_db
-from app.db.models import Like
-from app.schemas.schemas import LikeCreate, LikeRead
+from backend.app.db.database import get_db
+from backend.app.db.models import Like
+from backend.app.schemas.schemas import LikeCreate, LikeRead
 
 router = APIRouter()
 

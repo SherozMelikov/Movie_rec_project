@@ -1,5 +1,5 @@
-from app.db.database import SessionLocal
-from app.db.models import Rating
+from backend.app.db.database import SessionLocal
+from backend.app.db.models import Rating
 import threading
 
 class RatingService:

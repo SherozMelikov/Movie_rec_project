@@ -4,8 +4,8 @@ import time
 import requests
 from dotenv import load_dotenv
 from sqlalchemy.orm import Session
-from app.db.database import SessionLocal
-from app.db.models import MovieMetadata, Link
+from backend.app.db.database import SessionLocal
+from backend.app.db.models import MovieMetadata, Link
 
 # -------------------------------
 # Load .env

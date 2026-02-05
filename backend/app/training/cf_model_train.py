@@ -2,7 +2,7 @@ import pickle
 import pandas as pd
 from pathlib import Path
 
-from app.services.cf_model import DynamicCF
+from backend.app.services.cf_model import DynamicCF
 
 BASE_DIR = Path(__file__).resolve().parents[3]
 

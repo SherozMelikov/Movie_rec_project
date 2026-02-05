@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
-from app.db.models import Movie, Rating, UserRecommendationCache
-from app.db.database import SessionLocal
+from backend.app.db.models import Movie, Rating, UserRecommendationCache
+from backend.app.db.database import SessionLocal
 import threading
 import pandas as pd
 import logging

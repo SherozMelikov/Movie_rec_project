@@ -24,13 +24,3 @@ def get_db():
         yield db
     finally:
         db.close()
-
-
-
-
-
-
-# Create tables in the database (used on startup)
-def create_tables():
-    print("Creating tables if not exist...")
-    Base.metadata.create_all(bind=engine)

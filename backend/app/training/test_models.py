@@ -1,5 +1,5 @@
-from app.core.model_loader import ModelLoader
-from app.services.recommendation_service import RecommendationService
+from backend.app.core.model_loader import ModelLoader
+from backend.app.services.recommendation_service import RecommendationService
 
 # 1️⃣ Create model loader instance
 model_loader = ModelLoader()

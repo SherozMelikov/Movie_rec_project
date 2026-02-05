@@ -1,10 +1,10 @@
 # backend/app/core/model_loader.py
 
-from app.db.database import engine
+from backend.app.db.database import engine
 import pandas as pd
-from app.services.cbf_model import DynamicCBF
-from app.services.cf_model import DynamicCF
-from app.services.hybrid_model import DynamicHybridRecommender
+from backend.app.services.cbf_model import DynamicCBF
+from backend.app.services.cf_model import DynamicCF
+from backend.app.services.hybrid_model import DynamicHybridRecommender
 
 class ModelLoader:
     def __init__(self):
