@@ -1,20 +1,27 @@
-import pickle
-from pathlib import Path
+# backend/app/core/model_loader.py
+
+from backend.app.db.database import engine
 import pandas as pd
-from backend.app.services.hybrid_model import HybridRecommender
+from backend.app.services.cbf_model import DynamicCBF
+from backend.app.services.cf_model import DynamicCF
+from backend.app.services.hybrid_model import DynamicHybridRecommender
 
-BASE_DIR = Path(__file__).resolve().parents[3]  # Movie_rec_project/
-MODELS_DIR = BASE_DIR / "backend/app/models_store"
+class ModelLoader:
+    def __init__(self):
+        # Movies rarely change → safe to load once
+        self.movies = pd.read_sql("SELECT movie_id, title, genres FROM movies", engine)
+        self.cbf = DynamicCBF(self.movies)
+        self.build_hybrid()  # optional, build at init
 
-# Load pickles
-with open(MODELS_DIR / "cbf.pkl", "rb") as f:
-    cbf_model = pickle.load(f)
+    def build_hybrid(self):
+        ratings = pd.read_sql("SELECT user_id, movie_id, rating FROM ratings", engine)
+        self.cf = DynamicCF(ratings)
+        self.hybrid = DynamicHybridRecommender(self.cbf, self.cf)
+        return self.hybrid
 
-with open(MODELS_DIR / "cf.pkl", "rb") as f:
-    cf_model = pickle.load(f)
-
-# Combine into hybrid
-hybrid_model = HybridRecommender(cbf_model, cf_model)
-
-# Load movie metadata
-movies_df = pd.read_csv(BASE_DIR / "datasets/movies.csv")
+    def refresh_cf_model(self):
+        """Rebuild CF with latest ratings so hybrid sees new user ratings"""
+        ratings = pd.read_sql("SELECT user_id, movie_id, rating FROM ratings", engine)
+        self.cf = DynamicCF(ratings)
+        if hasattr(self, "hybrid"):
+            self.hybrid.cf = self.cf

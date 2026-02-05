@@ -1,14 +1,11 @@
-import pickle
-from backend.app.services.hybrid_model import HybridRecommender
+from backend.app.core.model_loader import ModelLoader
+from backend.app.services.recommendation_service import RecommendationService
 
-# Load saved models
-with open("backend/models/cbf.pkl", "rb") as f:
-    cbf_model = pickle.load(f)
-with open("backend/models/cf.pkl", "rb") as f:
-    cf_model = pickle.load(f)
+# 1️⃣ Create model loader instance
+model_loader = ModelLoader()
 
-hybrid = HybridRecommender(cbf_model, cf_model)
-recs = hybrid.recommend(user_id=1, top_n=10)
+# 2️⃣ Create recommendation service
+service = RecommendationService(model_loader)
 
-for r in recs:
-    print(r)
+# 3️⃣ Run recomputation synchronously for a user
+service._recompute(user_id=1)

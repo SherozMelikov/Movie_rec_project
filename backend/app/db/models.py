@@ -1,5 +1,5 @@
 # app/db/models.py
-from sqlalchemy import Column, Integer, String
+from sqlalchemy import Column, Integer, String , JSON , Boolean
 from backend.app.db.database import Base
 
 #Databse tables structure :
@@ -54,6 +54,8 @@ from backend.app.db.database import Base
 #     plot TEXT
 # );
 
+
+
 # app/db/models.py
 from sqlalchemy import Column, Integer, String, Float, Text, ForeignKey, TIMESTAMP
 from sqlalchemy.sql import func
@@ -76,10 +78,12 @@ class Link(Base):
 class MovieMetadata(Base):
     __tablename__ = "movie_metadata"
     movie_id = Column(Integer, ForeignKey("movies.movie_id"), primary_key=True)
-    year = Column(Integer)
-    poster_url = Column(Text)
-    backdrop_url = Column(Text)
-    plot = Column(Text)
+    year = Column(Integer, nullable=True)
+    poster_url = Column(Text, nullable=True)
+    backdrop_url = Column(Text, nullable=True)
+    plot = Column(Text, nullable=True)
+    popularity = Column(Float, nullable=True)
+    vote_average = Column(Float, nullable=True)
 
 class User(Base):
     __tablename__ = "users"
@@ -107,3 +111,11 @@ class UserPreference(Base):
     user_id = Column(Integer, ForeignKey("users.user_id"), primary_key=True)
     favorite_genres = Column(Text)
     created_at = Column(TIMESTAMP, server_default=func.now())
+
+class UserRecommendationCache(Base):
+    __tablename__ = "user_recommendation_cache"
+
+    user_id = Column(Integer, ForeignKey("users.user_id"), primary_key=True)
+    recommendations = Column(JSON, nullable=False)
+    is_stale = Column(Boolean, default=False)
+    last_updated = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())

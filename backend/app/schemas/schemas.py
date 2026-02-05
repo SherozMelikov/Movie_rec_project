@@ -88,10 +88,11 @@ class MovieMetadataRead(BaseModel):
     poster_url: Optional[str]
     backdrop_url: Optional[str]
     plot: Optional[str]
+    popularity: Optional[float]
+    vote_average: Optional[float]
 
     class Config:
         orm_mode = True
-
 # -------------------
 # Recommendation Schema
 # -------------------
@@ -109,3 +110,18 @@ class RecommendationItem(BaseModel):
 class RecommendationList(BaseModel):
     user_id: int
     recommendations: List[RecommendationItem]
+
+
+
+class UserRecommendationCacheRead(BaseModel):
+    user_id: int
+    recommendations: str  # JSON string
+    is_stale: int
+    updated_at: Optional[datetime]
+
+    class Config:
+        orm_mode = True
+
+class UserRecommendationCacheUpdate(BaseModel):
+    recommendations: str
+    is_stale: int

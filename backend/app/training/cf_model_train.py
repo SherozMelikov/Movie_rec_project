@@ -2,7 +2,7 @@ import pickle
 import pandas as pd
 from pathlib import Path
 
-from backend.app.services.cf_model import CFModel
+from backend.app.services.cf_model import DynamicCF
 
 BASE_DIR = Path(__file__).resolve().parents[3]
 
@@ -14,7 +14,7 @@ print("Loading data...")
 ratings = pd.read_csv(DATA_DIR / "ratings.csv")
 
 print("Training CF model...")
-cf_model = CFModel(ratings)
+cf_model = DynamicCF(ratings)
 
 model_path = MODELS_DIR / "cf.pkl"
 with open(model_path, "wb") as f:
