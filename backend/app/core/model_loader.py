@@ -1,6 +1,6 @@
 # backend/app/core/model_loader.py
 
-from backend.app.db.database import engine
+from app.db.database import engine
 import pandas as pd
 from app.services.cbf_model import DynamicCBF
 from app.services.cf_model import DynamicCF
