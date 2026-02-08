@@ -1,33 +1,18 @@
-from app.db.database import SessionLocal
+from app.db.database import SessionLocal, get_db
 from app.db.models import Rating
-import threading
+from app.tasks.recommendation_tasks import recompute_recommendations
 
 class RatingService:
-    def __init__(self, recommendation_service):
-        self.recommendation_service = recommendation_service
-
     def add_rating(self, rating_data):
-        """
-        Save rating and trigger recomputation in the background.
-        """
-        db = SessionLocal()
+        with get_db() as db:
+            rating = Rating(
+                user_id=rating_data.user_id,
+                movie_id=rating_data.movie_id,
+                rating=rating_data.rating
+            )
+            db.add(rating)
+            db.commit()
+            db.refresh(rating)
 
-        rating = Rating(
-            user_id=rating_data.user_id,
-            movie_id=rating_data.movie_id,
-            rating=rating_data.rating
-        )
-
-        db.add(rating)
-        db.commit()
-        db.refresh(rating)
-        db.close()
-
-        # 🔥 Trigger background recomputation
-        threading.Thread(
-            target=self.recommendation_service._recompute,
-            args=(rating.user_id,),
-            daemon=True
-        ).start()
-
+        recompute_recommendations.delay(rating.user_id)
         return rating

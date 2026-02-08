@@ -111,6 +111,10 @@ class RecommendationList(BaseModel):
     user_id: int
     recommendations: List[RecommendationItem]
 
+    class Config:
+        orm_mode = True
+
+
 
 
 class UserRecommendationCacheRead(BaseModel):
