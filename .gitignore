@@ -1,27 +1,59 @@
+# ----------------------------
 # Python cache and compiled files
+# ----------------------------
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
 
-# Virtual environment
+# ----------------------------
+# Virtual environments
+# ----------------------------
 venv/
+.venv/
+env/
 
+# ----------------------------
 # VS Code settings
+# ----------------------------
 .vscode/
 
+# ----------------------------
+# Environment variables (IMPORTANT)
+# ----------------------------
+.env
+backend/.env
+frontend/.env
+
+# ----------------------------
 # Huge datasets
+# ----------------------------
 datasets/
 
-# ML artifacts
+# ----------------------------
+# ML artifacts (VERY IMPORTANT)
+# ----------------------------
 backend/app/ml/artifacts/
 *.npy
 *.bin
 *.joblib
+*.pkl
+*.npz
 
-
-# Backend env file
-backend/.env
-
-# Frontend junk
+# ----------------------------
+# Frontend
+# ----------------------------
 frontend/node_modules/
 frontend/build/
 frontend/dist/
+
+# ----------------------------
+# Logs
+# ----------------------------
+*.log
+
+# ----------------------------
+# OS junk
+# ----------------------------
+.DS_Store
+Thumbs.db
