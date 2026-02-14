@@ -11,9 +11,12 @@ venv/
 # Huge datasets
 datasets/
 
-# Model artifacts
-*.pkl
-*.npz
+# ML artifacts
+backend/app/ml/artifacts/
+*.npy
+*.bin
+*.joblib
+
 
 # Backend env file
 backend/.env

@@ -1,0 +1,1 @@
+📁 app/db/README.md This folder handles PostgreSQL connection and SQLAlchemy models. Defines how data is stored in the database. No recommendation logic or API code here. Used by: services.
