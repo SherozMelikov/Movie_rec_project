@@ -1,3 +1,8 @@
+# This file is optional and  performing the role of  API connector  that :
+# -talks  directly  to  TMDB servers 
+# -sends HTTP  requests 
+# -returns raw json Data
+
 # app/services/tmdb_client.py
 import os
 import requests

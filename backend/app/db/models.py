@@ -21,13 +21,7 @@ class Movie(Base):
     tags = relationship("Tag", back_populates="movie")
 
     # ✅ FIX: add metadata relationship to match MovieMetadata(back_populates="movie")
-    metadata = relationship(
-        "MovieMetadata",
-        back_populates="movie",
-        uselist=False,
-        cascade="all, delete-orphan",
-        passive_deletes=True,
-    )
+    tmdb_metadata = relationship("MovieMetadata", back_populates="movie", uselist=False)
 
 
 class User(Base):
@@ -134,7 +128,7 @@ class MovieMetadata(Base):
 
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
 
-    movie = relationship("Movie", back_populates="metadata", uselist=False)
+    movie = relationship("Movie", back_populates="tmdb_metadata", uselist=False)
 
 
 

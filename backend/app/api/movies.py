@@ -6,7 +6,8 @@ from app.db.database import get_db
 from app.schemas.schemas import MovieOut
 from app.services.movie_service import movie_service
 from app.services.metadata_service import build_poster_url
-from app.services import metadata_service
+from app.services.metadata_service import metadata_service
+
 
 router = APIRouter(tags=["Movies"])
 
