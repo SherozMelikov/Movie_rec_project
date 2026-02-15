@@ -1,27 +1,25 @@
-# backend/app/workers/tmdb_backfill_worker.py
-
+# app/workers/tmdb_backfill_worker.py
 import os
 import time
 import logging
-from datetime import datetime, timezone, date, timedelta
+from datetime import datetime, timezone, timedelta, date
+
 from sqlalchemy.orm import Session
 
 from app.db.database import SessionLocal
 from app.db.models import MovieMetadata
 from app.services.tmdb_client import tmdb_client
 
-logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO"))
-log = logging.getLogger("tmdb_backfill_worker")
+logger = logging.getLogger("tmdb_backfill_worker")
+logging.basicConfig(level=logging.INFO)
 
-# -------------------------------
-# Worker settings (env-configurable)
-# -------------------------------
-REQUESTS_PER_BATCH = int(os.getenv("TMDB_REQ_BATCH", "35"))      # keep under 40
-BATCH_SLEEP_SECONDS = int(os.getenv("TMDB_BATCH_SLEEP", "10"))   # sleep after each batch
+REQUESTS_PER_BATCH = int(os.getenv("TMDB_REQUESTS_PER_BATCH", "35"))
+BATCH_SLEEP_SECONDS = int(os.getenv("TMDB_BATCH_SLEEP_SECONDS", "10"))
+COOLDOWN_HOURS = int(os.getenv("TMDB_COOLDOWN_HOURS", "24"))
+BACKFILL_LIMIT = int(os.getenv("TMDB_BACKFILL_LIMIT", "2000"))
+COMMIT_EVERY = int(os.getenv("TMDB_COMMIT_EVERY", "25"))
 
-COOLDOWN_HOURS = int(os.getenv("TMDB_COOLDOWN_HOURS", "24"))     # don't retry too often
-PICK_LIMIT = int(os.getenv("TMDB_PICK_LIMIT", "2000"))           # rows per loop
-LOOP_SLEEP_SECONDS = int(os.getenv("TMDB_LOOP_SLEEP", "30"))     # when no work
+SLEEP_WHEN_EMPTY_SECONDS = int(os.getenv("TMDB_EMPTY_SLEEP_SECONDS", "30"))
 
 
 def parse_release_date(rd: str | None) -> date | None:
@@ -33,113 +31,106 @@ def parse_release_date(rd: str | None) -> date | None:
         return None
 
 
-def should_skip_due_to_cooldown(meta: MovieMetadata, now: datetime) -> bool:
-    if not meta.last_checked_at:
-        return False
-    return (now - meta.last_checked_at) < timedelta(hours=COOLDOWN_HOURS)
-
-
-def pick_batch(db: Session, limit: int):
+def pick_batch(db: Session, limit: int) -> list[MovieMetadata]:
     return (
         db.query(MovieMetadata)
         .filter(MovieMetadata.status.in_(["pending", "error"]))
         .order_by(
             MovieMetadata.last_checked_at.is_(None).desc(),
-            MovieMetadata.last_checked_at.asc()
+            MovieMetadata.last_checked_at.asc(),
         )
         .limit(limit)
         .all()
     )
 
 
-def run_once(limit: int = 2000) -> int:
-    """
-    Process one batch.
-    Returns number of rows picked (0 => nothing to do).
-    """
+def run_once(pick_limit: int):
     db: Session = SessionLocal()
     try:
-        metas = pick_batch(db, limit)
-        total = len(metas)
-
-        if total == 0:
+        metas = pick_batch(db, pick_limit)
+        if not metas:
+            logger.info("No pending/error rows found.")
             return 0
 
-        log.info("Picked %d rows to process", total)
+        logger.info(f"Picked {len(metas)} rows to process")
 
-        now = datetime.now(timezone.utc)
         calls = 0
         processed = 0
         found = 0
         errors = 0
         skipped_cooldown = 0
         marked_not_found = 0
+        changed_since_commit = 0
 
-        for meta in metas:
+        for i, meta in enumerate(metas, start=1):
             processed += 1
+            now = datetime.now(timezone.utc)
 
             # must have tmdb_id for this worker
             if not meta.tmdb_id:
                 meta.status = "not_found"
                 meta.last_checked_at = now
-                db.commit()
                 marked_not_found += 1
+                changed_since_commit += 1
                 continue
 
-            # cooldown gate
-            if should_skip_due_to_cooldown(meta, now):
+            if meta.last_checked_at and (now - meta.last_checked_at) < timedelta(hours=COOLDOWN_HOURS):
                 skipped_cooldown += 1
                 continue
 
-            # set last_checked_at BEFORE calling TMDb (prevents rapid retries)
             meta.last_checked_at = now
-            db.commit()
+            changed_since_commit += 1
 
-            try:
-                details = tmdb_client.movie_details(int(meta.tmdb_id))
-                calls += 1
+            code, details = tmdb_client.movie_details(int(meta.tmdb_id))
+            calls += 1
 
+            if not details:
+                if code == 404:
+                    meta.status = "not_found"
+                    marked_not_found += 1
+                else:
+                    meta.status = "error"
+                    errors += 1
+                changed_since_commit += 1
+            else:
                 meta.overview = details.get("overview")
                 meta.poster_path = details.get("poster_path")
                 meta.backdrop_path = details.get("backdrop_path")
                 meta.release_date = parse_release_date(details.get("release_date"))
                 meta.fetched_at = now
                 meta.status = "found"
-                db.commit()
                 found += 1
+                changed_since_commit += 1
 
-            except Exception:
-                meta.status = "error"
-                db.commit()
-                errors += 1
+            logger.info(f"[{i}/{len(metas)}] movie_id={meta.movie_id} tmdb_id={meta.tmdb_id} status={meta.status}")
 
-            log.info(
-                "[%d/%d] movie_id=%s tmdb_id=%s status=%s",
-                processed, total, meta.movie_id, meta.tmdb_id, meta.status
-            )
-
-            # rate limiting
             if calls % REQUESTS_PER_BATCH == 0:
-                log.info("Rate-limit sleep: %ds", BATCH_SLEEP_SECONDS)
+                logger.info(f"Rate-limit sleep: {BATCH_SLEEP_SECONDS}s")
                 time.sleep(BATCH_SLEEP_SECONDS)
 
-        log.info(
-            "Batch done: picked=%d processed=%d calls=%d found=%d errors=%d skipped_cooldown=%d marked_not_found=%d",
-            total, processed, calls, found, errors, skipped_cooldown, marked_not_found
+            if changed_since_commit >= COMMIT_EVERY:
+                db.commit()
+                changed_since_commit = 0
+
+        if changed_since_commit:
+            db.commit()
+
+        logger.info(
+            f"Batch done: picked={len(metas)} processed={processed} calls={calls} "
+            f"found={found} errors={errors} skipped_cooldown={skipped_cooldown} marked_not_found={marked_not_found}"
         )
-        return total
+        return processed
 
     finally:
         db.close()
 
 
 def main():
-    log.info("TMDb backfill worker started (pick_limit=%d)", PICK_LIMIT)
+    logger.info(f"TMDb backfill worker started (pick_limit={BACKFILL_LIMIT})")
     while True:
-        n = run_once(limit=PICK_LIMIT)
-        if n == 0:
-            log.info("No pending/error rows. Sleeping %ds...", LOOP_SLEEP_SECONDS)
-            time.sleep(LOOP_SLEEP_SECONDS)
+        processed = run_once(BACKFILL_LIMIT)
+        if processed == 0:
+            time.sleep(SLEEP_WHEN_EMPTY_SECONDS)
 
 
 if __name__ == "__main__":
