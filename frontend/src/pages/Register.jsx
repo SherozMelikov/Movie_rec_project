@@ -2,22 +2,24 @@ import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import "../styles/auth.css";
 
+import { signup, getMyOnboarding } from "../api/api";
 import { useAuth } from "../context/AuthContext";
-import { getMyOnboarding } from "../api/api";
 
 function errorToText(e) {
   const detail = e?.response?.data?.detail;
   if (typeof detail === "string") return detail;
   if (Array.isArray(detail)) return detail.map((x) => x.msg).join(" | ");
-  return "Login failed";
+  return "Signup failed";
 }
 
-export default function Login() {
-  const { login } = useAuth();
+export default function Register() {
   const nav = useNavigate();
+  const { login } = useAuth();
 
   const [username, setUsername] = useState("");
+  const [email, setEmail] = useState(() => localStorage.getItem("prefill_email") || "");
   const [password, setPassword] = useState("");
+
   const [err, setErr] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -25,8 +27,14 @@ export default function Login() {
     e.preventDefault();
     setErr("");
     setLoading(true);
+
     try {
+      await signup(username, email, password);
+
+      // auto-login like Netflix
       await login(username, password);
+
+      localStorage.removeItem("prefill_email");
 
       const onboarding = await getMyOnboarding();
       nav(onboarding ? "/recommendations" : "/onboarding/genres");
@@ -40,7 +48,7 @@ export default function Login() {
   return (
     <div className="auth-page">
       <div className="auth-card">
-        <h2>Sign In</h2>
+        <h2>Create account</h2>
 
         <form onSubmit={onSubmit}>
           <input
@@ -53,22 +61,32 @@ export default function Login() {
 
           <input
             className="auth-input"
+            placeholder="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            type="email"
+            required
+          />
+
+          <input
+            className="auth-input"
             type="password"
             placeholder="Password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
+            minLength={6}
           />
 
           <button className="auth-button" disabled={loading}>
-            {loading ? "Signing in..." : "Sign In"}
+            {loading ? "Creating..." : "Sign up"}
           </button>
         </form>
 
         {err && <div className="auth-error">{err}</div>}
 
         <div className="auth-link">
-          New here? <Link to="/register">Create account</Link>
+          Already have an account? <Link to="/login">Sign in</Link>
         </div>
       </div>
     </div>

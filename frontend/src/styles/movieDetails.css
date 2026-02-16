@@ -1,0 +1,215 @@
+/* ===== Movie Details (production-ish) ===== */
+
+.md-page {
+  min-height: 100vh;
+  background: radial-gradient(1200px 600px at 20% 10%, rgba(255,255,255,0.06), transparent 60%),
+              radial-gradient(900px 500px at 90% 0%, rgba(255,255,255,0.05), transparent 55%),
+              #0b0c10;
+  color: #e9e9ee;
+}
+
+.md-container {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 24px 16px 40px;
+}
+
+.md-hero {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  gap: 18px;
+  padding: 18px;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.04);
+  border-radius: 18px;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.45);
+}
+
+@media (max-width: 860px) {
+  .md-hero { grid-template-columns: 1fr; }
+}
+
+.md-posterWrap {
+  display: grid;
+  place-items: start;
+}
+
+.md-poster {
+  width: 240px;
+  aspect-ratio: 2 / 3;
+  border-radius: 16px;
+  object-fit: cover;
+  box-shadow: 0 18px 45px rgba(0,0,0,0.5);
+  border: 1px solid rgba(255,255,255,0.08);
+}
+
+@media (max-width: 860px) {
+  .md-poster { width: 180px; }
+}
+
+.md-posterPh {
+  width: 240px;
+  aspect-ratio: 2 / 3;
+  border-radius: 16px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.08);
+}
+
+.md-meta {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+}
+
+.md-titleRow {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  flex-wrap: wrap;
+}
+
+.md-title {
+  font-size: 28px;
+  line-height: 1.15;
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+
+.md-sub {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  color: rgba(233,233,238,0.72);
+  font-size: 13px;
+}
+
+.md-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.10);
+  background: rgba(255,255,255,0.05);
+}
+
+.md-overview {
+  margin: 6px 0 0;
+  color: rgba(233,233,238,0.86);
+  line-height: 1.6;
+  font-size: 14px;
+}
+
+.md-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+
+/* --- Like (heart) button --- */
+.iconBtn {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,0.15);
+  background: rgba(255,255,255,0.06);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  font-size: 22px;
+  transition: all 0.2s ease;
+}
+
+.iconBtn:hover {
+  background: rgba(255,255,255,0.1);
+}
+
+.heart {
+  color: rgba(255,255,255,0.7);
+}
+
+.heartActive {
+  color: #e50914; /* red heart */
+}
+
+/* --- Rating stars --- */
+.md-stars {
+  display: inline-flex;
+  gap: 6px;
+}
+
+.starIcon {
+  font-size: 28px;
+  cursor: pointer;
+  color: rgba(255,255,255,0.25);
+  transition: transform 0.1s ease, color 0.15s ease;
+}
+
+.starIcon:hover {
+  transform: scale(1.15);
+}
+
+.starFilled {
+  color: #ffd54a; /* yellow */
+}
+
+
+.md-section {
+  margin-top: 18px;
+}
+
+.md-sectionTitle {
+  margin: 0 0 10px;
+  font-size: 18px;
+  letter-spacing: -0.01em;
+}
+
+.sim-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 12px;
+}
+
+@media (max-width: 1200px) { .sim-grid { grid-template-columns: repeat(4, 1fr); } }
+@media (max-width: 860px)  { .sim-grid { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 520px)  { .sim-grid { grid-template-columns: repeat(2, 1fr); } }
+
+.sim-card {
+  display: grid;
+  gap: 6px;
+  padding: 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.04);
+  text-decoration: none;
+  color: inherit;
+  transition: transform .08s ease, background .18s ease, border-color .18s ease;
+}
+.sim-card:hover {
+  transform: translateY(-2px);
+  background: rgba(255,255,255,0.06);
+  border-color: rgba(255,255,255,0.12);
+}
+
+.sim-title {
+  font-weight: 700;
+  font-size: 13px;
+  line-height: 1.25;
+}
+
+.sim-genres {
+  color: rgba(233,233,238,0.70);
+  font-size: 12px;
+  line-height: 1.25;
+}
+
+.md-muted {
+  color: rgba(233,233,238,0.72);
+}
+
+.md-loading,
+.md-error {
+  padding: 20px;
+}

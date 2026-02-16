@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
 import { browseMovies, searchMovies } from "../api/api";
+import MovieGrid from "../components/MovieGrid";
 
 export default function Home() {
   const [q, setQ] = useState("");
@@ -61,14 +61,7 @@ export default function Home() {
       {loading && <p>Loading...</p>}
       {err && <p style={{ color: "crimson" }}>{err}</p>}
 
-      <ul style={{ display: "grid", gap: 8, paddingLeft: 18 }}>
-        {movies.map((m) => (
-          <li key={m.movie_id}>
-            <Link to={`/movies/${m.movie_id}`}>{m.title}</Link>
-            {m.genres ? <span style={{ marginLeft: 8, color: "#666" }}>{m.genres}</span> : null}
-          </li>
-        ))}
-      </ul>
+      <MovieGrid items={movies} />
     </div>
   );
 }

@@ -1,28 +1,55 @@
 import React, { useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
-import { getMovie, getSimilar } from "../api/api";
+import { useParams } from "react-router-dom";
+import {
+  getMovie,
+  getSimilar,
+  trackView,
+  isLiked,
+  likeMovie,
+  unlikeMovie,
+  getMyRating,
+  setRating,
+} from "../api/api";
+
+import MovieGrid from "../components/MovieGrid";
+import "../styles/movieDetails.css";
 
 export default function MovieDetails() {
   const { movieId } = useParams();
+
   const [movie, setMovie] = useState(null);
   const [similar, setSimilar] = useState([]);
+  const [liked, setLiked] = useState(false);
+  const [rating, setMyRating] = useState(null);
+
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
 
   useEffect(() => {
     let alive = true;
 
-    async function loadMovie() {
+    async function load() {
       setErr("");
       setLoading(true);
+
       try {
-        const m = await getMovie(movieId);
-        const sim = await getSimilar(movieId, 12);
+        // don’t block UI if analytics fails
+        trackView(movieId);
+
+        const [m, sim, likedRes, ratingRes] = await Promise.all([
+          getMovie(movieId),
+          getSimilar(movieId, 12),
+          isLiked(movieId),
+          getMyRating(movieId),
+        ]);
 
         if (!alive) return;
+
         setMovie(m);
-        setSimilar(sim);
-      } catch (e) {
+        setSimilar(Array.isArray(sim) ? sim : []);
+        setLiked(!!likedRes?.liked);
+        setMyRating(ratingRes?.score ?? null);
+      } catch {
         if (!alive) return;
         setErr("Failed to load movie");
       } finally {
@@ -31,46 +58,129 @@ export default function MovieDetails() {
       }
     }
 
-    loadMovie();
+    load();
     return () => {
       alive = false;
     };
   }, [movieId]);
 
-  if (loading) return <p>Loading...</p>;
-  if (err) return <p style={{ color: "crimson" }}>{err}</p>;
-  if (!movie) return <p>Not found</p>;
+  async function onToggleLike() {
+    try {
+      if (liked) {
+        await unlikeMovie(movieId);
+        setLiked(false);
+      } else {
+        await likeMovie(movieId);
+        setLiked(true);
+      }
+    } catch {
+      // optional: toast
+    }
+  }
 
-  return (
-    <div style={{ display: "grid", gap: 16 }}>
-      <div style={{ display: "flex", gap: 16 }}>
-        {movie.poster_url ? (
-          <img
-            src={movie.poster_url}
-            alt={movie.title}
-            style={{ width: 180, borderRadius: 8 }}
-          />
-        ) : (
-          <div style={{ width: 180, height: 260, background: "#eee", borderRadius: 8 }} />
-        )}
+  async function onRate(score) {
+    if (rating === score) return;
+    try {
+      const res = await setRating(movieId, score);
+      setMyRating(res?.score ?? score);
+    } catch {
+      // optional: toast
+    }
+  }
 
-        <div>
-          <h2 style={{ marginTop: 0 }}>{movie.title}</h2>
-          {movie.release_date ? <p>Release: {movie.release_date}</p> : null}
-          {movie.genres ? <p style={{ color: "#666" }}>{movie.genres}</p> : null}
-          {movie.overview ? <p>{movie.overview}</p> : <p style={{ color: "#666" }}>No overview</p>}
+  if (loading) {
+    return (
+      <div className="md-page">
+        <div className="md-container md-loading">Loading…</div>
+      </div>
+    );
+  }
+
+  if (err) {
+    return (
+      <div className="md-page">
+        <div className="md-container md-error" style={{ color: "#ff6b6b" }}>
+          {err}
         </div>
       </div>
+    );
+  }
 
-      <div>
-        <h3>Similar movies</h3>
-        <ul style={{ display: "grid", gap: 6, paddingLeft: 18 }}>
-          {similar.map((m) => (
-            <li key={m.movie_id}>
-              <Link to={`/movies/${m.movie_id}`}>{m.title}</Link>
-            </li>
-          ))}
-        </ul>
+  if (!movie) {
+    return (
+      <div className="md-page">
+        <div className="md-container md-error">Not found</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="md-page">
+      <div className="md-container">
+        <div className="md-hero">
+          <div className="md-posterWrap">
+            {movie.poster_url ? (
+              <img className="md-poster" src={movie.poster_url} alt={movie.title} />
+            ) : (
+              <div className="md-posterPh" />
+            )}
+          </div>
+
+          <div className="md-meta">
+            <div className="md-titleRow">
+              <h1 className="md-title">{movie.title}</h1>
+            </div>
+
+            <div className="md-sub">
+              {movie.release_date ? <span className="md-pill">📅 {movie.release_date}</span> : null}
+              {movie.genres ? <span className="md-pill">🎭 {movie.genres}</span> : null}
+              <span className="md-pill">ID: {movie.movie_id}</span>
+            </div>
+
+            <div className="md-actions">
+              {/* Heart like button */}
+              <button
+                type="button"
+                className="iconBtn"
+                onClick={onToggleLike}
+                title={liked ? "Unlike" : "Like"}
+              >
+                <span className={liked ? "heart heartActive" : "heart"}>
+                  {liked ? "♥" : "♡"}
+                </span>
+              </button>
+
+              {/* Star rating */}
+              <div className="md-stars">
+                {[1, 2, 3, 4, 5].map((s) => (
+                  <span
+                    key={s}
+                    className={`starIcon ${rating >= s ? "starFilled" : ""}`}
+                    onClick={() => onRate(s)}
+                    title={`Rate ${s}`}
+                  >
+                    ★
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            <p className="md-overview">
+              {movie.overview ? movie.overview : <span className="md-muted">No overview.</span>}
+            </p>
+          </div>
+        </div>
+
+        {/* ✅ Similar movies now uses MovieGrid + MovieCard */}
+        <div className="md-section">
+          <h2 className="md-sectionTitle">Similar movies</h2>
+
+          {similar.length === 0 ? (
+            <p className="md-muted">No similar movies found.</p>
+          ) : (
+            <MovieGrid items={similar} />
+          )}
+        </div>
       </div>
     </div>
   );

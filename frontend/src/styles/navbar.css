@@ -1,0 +1,82 @@
+.nav {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: rgba(11, 12, 16, 0.78);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+
+.nav-inner {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+}
+
+.brand-badge {
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  background: #e50914;
+  display: grid;
+  place-items: center;
+  font-weight: 900;
+  color: white;
+}
+
+.nav-links {
+  display: flex;
+  gap: 14px;
+  margin-left: 10px;
+}
+
+.nav-link {
+  color: rgba(233,233,238,0.78);
+  font-weight: 600;
+  font-size: 14px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  transition: background .18s ease, color .18s ease;
+}
+
+.nav-link:hover {
+  background: rgba(255,255,255,0.06);
+  color: #fff;
+}
+
+.nav-right {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.nav-btn {
+  border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(255,255,255,0.06);
+  color: #fff;
+  padding: 8px 12px;
+  border-radius: 12px;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.nav-btnPrimary {
+  background: #e50914;
+  border-color: rgba(255,255,255,0.14);
+}
+
+.nav-btnPrimary:hover {
+  background: #f1121d;
+}

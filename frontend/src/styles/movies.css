@@ -1,0 +1,86 @@
+.movieGrid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 12px;
+}
+
+@media (max-width: 1200px) {
+  .movieGrid { grid-template-columns: repeat(4, 1fr); }
+}
+
+@media (max-width: 860px) {
+  .movieGrid { grid-template-columns: repeat(3, 1fr); }
+}
+
+@media (max-width: 520px) {
+  .movieGrid { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* Optional: make cards feel more "Netflix-ish" */
+.movieCard {
+  text-decoration: none;
+  color: inherit;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,0.10);
+  background: rgba(255,255,255,0.04);
+  transition: transform .08s ease, background .18s ease, border-color .18s ease;
+}
+
+.movieCard:hover {
+  transform: translateY(-2px);
+  background: rgba(255,255,255,0.06);
+  border-color: rgba(255,255,255,0.14);
+}
+
+.moviePosterWrap {
+  width: 100%;
+  aspect-ratio: 2 / 3;
+  background: rgba(255,255,255,0.03);
+}
+
+.moviePoster {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.moviePosterFallback {
+  width: 100%;
+  height: 100%;
+  background: rgba(255,255,255,0.08);
+}
+
+.movieMeta {
+  padding: 10px;
+  display: grid;
+  gap: 6px;
+}
+
+.movieTitle {
+  font-weight: 700;
+  font-size: 13px;
+  line-height: 1.2;
+
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+
+  line-clamp: 2; /* standard property */
+
+  overflow: hidden;
+}
+
+.movieSub {
+  font-size: 12px;
+  color: rgba(233,233,238,0.72);
+
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+
+  line-clamp: 2; /* standard property */
+
+  overflow: hidden;
+}

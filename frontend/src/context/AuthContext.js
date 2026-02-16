@@ -9,15 +9,18 @@ export function AuthProvider({ children }) {
 
   async function login(username, password) {
     const data = await apiLogin(username, password);
-    const accessToken = data.access_token;
+    const tokenString = typeof data === "string" ? data : data.access_token;
 
-    localStorage.setItem("access_token", accessToken);
-    setToken(accessToken);
+    localStorage.setItem("access_token", tokenString);
+    setToken(tokenString);
   }
 
   function logout() {
     localStorage.removeItem("access_token");
     setToken(null);
+
+    // ✅ Force redirect to landing page
+    window.location.assign("/");
   }
 
   const value = useMemo(() => ({ token, isAuthed, login, logout }), [token, isAuthed]);
