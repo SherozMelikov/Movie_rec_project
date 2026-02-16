@@ -1,27 +1,49 @@
-# from app.db.database import get_db
-# from app.db.models import Like
-# from app.tasks.recommendation_tasks import recompute_recommendations
+from __future__ import annotations
+
+from sqlalchemy.orm import Session
+from fastapi import HTTPException
+
+from app.db.models import Movie, Like
 
 
-# class LikeService:
-#     def add_like(self, like_data):
-#         with get_db() as db:
-#             existing = db.query(Like).filter_by(
-#                 user_id=like_data.user_id,
-#                 movie_id=like_data.movie_id
-#             ).first()
+class LikeService:
+    def like(self, db: Session, user_id: int, movie_id: int) -> bool:
+        exists = db.query(Movie.movie_id).filter(Movie.movie_id == movie_id).first()
+        if not exists:
+            raise HTTPException(status_code=404, detail="Movie not found")
 
-#             if existing:
-#                 return existing
+        found = (
+            db.query(Like)
+            .filter(Like.user_id == user_id, Like.movie_id == movie_id)
+            .first()
+        )
+        if found:
+            return True  # idempotent
 
-#             like = Like(
-#                 user_id=like_data.user_id,
-#                 movie_id=like_data.movie_id
-#             )
-#             db.add(like)
-#             db.commit()
-#             db.refresh(like)
+        db.add(Like(user_id=user_id, movie_id=movie_id))
+        db.commit()
+        return True
 
-#         # trigger celery AFTER db is closed
-#         recompute_recommendations.delay(like.user_id)
-#         return like
+    def unlike(self, db: Session, user_id: int, movie_id: int) -> bool:
+        found = (
+            db.query(Like)
+            .filter(Like.user_id == user_id, Like.movie_id == movie_id)
+            .first()
+        )
+        if not found:
+            return False  # idempotent
+
+        db.delete(found)
+        db.commit()
+        return True
+
+    def is_liked(self, db: Session, user_id: int, movie_id: int) -> bool:
+        return (
+            db.query(Like)
+            .filter(Like.user_id == user_id, Like.movie_id == movie_id)
+            .first()
+            is not None
+        )
+
+
+like_service = LikeService()

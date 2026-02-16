@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from app.db.database import get_db
 from app.schemas.schemas import MovieOut
 from app.services.movie_service import movie_service
-from app.services.metadata_service import build_poster_url, metadata_service
+from app.services.metadata_service import metadata_service, build_poster_url
 
 router = APIRouter(tags=["Movies"])
 
@@ -38,20 +38,15 @@ def browse_movies(
 def get_movie(movie_id: int, db: Session = Depends(get_db)):
     movie = movie_service.get_movie_or_404(db, movie_id)
 
-    # ✅ DB-only (does not call TMDb)
     meta = metadata_service.get_cached_only(db, movie_id)
-
-    poster_url = build_poster_url(meta.poster_path) if meta else None
-    overview = meta.overview if meta else None
-    release_date = meta.release_date if meta else None
 
     return MovieOut(
         movie_id=movie.movie_id,
         title=movie.title,
         genres=movie.genres,
-        poster_url=poster_url,
-        overview=overview,
-        release_date=release_date,
+        poster_url=build_poster_url(meta.poster_path) if meta else None,
+        overview=meta.overview if meta else None,
+        release_date=meta.release_date if meta else None,
     )
 
 

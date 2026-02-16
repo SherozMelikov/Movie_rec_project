@@ -4,6 +4,7 @@ from pydantic import BaseModel, Field
 from pydantic import BaseModel, EmailStr
 from typing import Literal, Optional
 
+
 class MovieSchema(BaseModel):
     movie_id: int
     title: str
