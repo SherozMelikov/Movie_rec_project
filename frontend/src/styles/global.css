@@ -1,14 +1,15 @@
-html, body, #root {
-  height: 100%;
-}
+html, body, #root { height: 100%; }
+
+html { scrollbar-gutter: stable; }
 
 body {
-  margin: 0;          /* ✅ removes white border */
+  margin: 0;
   padding: 0;
-  background: #0b0c10; /* ✅ matches your app dark */
+  background: #0b0c10;
   color: #e9e9ee;
   font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
 }
+
 
 * {
   box-sizing: border-box;
@@ -16,5 +17,5 @@ body {
 
 a {
   color: inherit;
-  text-decoration: none; /* ✅ remove ugly default underline */
+  text-decoration: none;
 }

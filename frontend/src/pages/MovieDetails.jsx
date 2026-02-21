@@ -91,10 +91,35 @@ export default function MovieDetails() {
   if (loading) {
     return (
       <div className="md-page">
-        <div className="md-container md-loading">Loading…</div>
+        <div className="md-container">
+          <div className="md-hero">
+            <div className="md-posterWrap">
+              <div className="mdSkPoster" />
+            </div>
+
+            <div className="md-meta">
+              <div className="skLine skTitle" style={{ width: "60%" }} />
+              <div className="skLine" style={{ width: "40%" }} />
+              <div style={{ height: 8 }} />
+              <div className="skLine" style={{ width: "85%" }} />
+              <div className="skLine" style={{ width: "78%" }} />
+              <div className="skLine" style={{ width: "70%" }} />
+            </div>
+          </div>
+
+          <div className="md-section">
+            <h2 className="md-sectionTitle">Similar movies</h2>
+            {/* reuse MovieGrid skeleton */}
+            <div style={{ marginTop: 10 }}>
+              {/* if you imported MovieGrid already, use it: */}
+              {/* <MovieGrid items={[]} loading={true} skeletonCount={12} /> */}
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
+
 
   if (err) {
     return (

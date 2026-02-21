@@ -14,13 +14,14 @@ K = 20
 
 # IMPORTANT: quoted column names to match your DB schema
 SQL_TEST = text("""
-SELECT DISTINCT ON ("user_id")
-  "user_id", "movie_id", "ts"
-FROM events
-WHERE "event_type" = 'like'
-   OR ("event_type" = 'rate' AND "rating_value" >= 4)
-ORDER BY "user_id", "ts" DESC;
+SELECT DISTINCT ON (user_id)
+  user_id, movie_id, ts
+FROM interactions_all
+WHERE event_type = 'like'
+   OR (event_type = 'rate' AND rating_value >= 4)
+ORDER BY user_id, ts DESC;
 """)
+
 
 
 def hit_ndcg(test_mid: int, ranked_ids: list[int]):
@@ -95,7 +96,8 @@ def evaluate():
         # ----------------------
         # CBF ONLY (HNSW)
         # ----------------------
-        hits = vector_index.search(user_vec, k=K + len(exclude) + 200)
+        hits = vector_index.search(user_vec, k=5000)  # or 10000 if still low
+
         cbf_ids = []
         for mid, _ in hits:
             mid = int(mid)

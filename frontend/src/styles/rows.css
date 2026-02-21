@@ -1,0 +1,46 @@
+.row {
+  margin: 18px 0 26px;
+}
+
+.rowHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.rowTitle {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.rowSub {
+  color: rgba(255,255,255,0.65);
+  font-size: 12px;
+}
+
+.rowScroller {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+
+  overflow-x: auto;
+  padding: 8px 2px 14px;
+
+  scroll-snap-type: x proximity;
+}
+
+.rowScroller > a {
+  scroll-snap-align: start;
+}
+
+.rowScroller::-webkit-scrollbar {
+  height: 10px;
+}
+
+.rowScroller::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.14);
+  border-radius: 999px;
+}

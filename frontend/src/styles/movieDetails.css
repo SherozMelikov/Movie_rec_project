@@ -213,3 +213,29 @@
 .md-error {
   padding: 20px;
 }
+
+
+/* MovieDetails skeleton poster */
+.mdSkPoster {
+  width: 240px;
+  aspect-ratio: 2 / 3;
+  border-radius: 16px;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.06);
+  overflow: hidden;
+  position: relative;
+}
+
+.mdSkPoster::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  transform: translateX(-120%);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255,255,255,0.10),
+    transparent
+  );
+  animation: skShimmer 1.15s infinite;
+}

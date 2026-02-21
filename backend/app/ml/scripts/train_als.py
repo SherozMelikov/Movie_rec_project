@@ -11,6 +11,11 @@ from implicit.als import AlternatingLeastSquares
 from app.db.database import SessionLocal
 
 ART_DIR = os.path.join(os.path.dirname(__file__), "..", "artifacts", "als")
+
+print("✅ ART_DIR (ABS):", os.path.abspath(ART_DIR))
+
+
+
 os.makedirs(ART_DIR, exist_ok=True)
 
 # ---- knobs ----
@@ -40,8 +45,9 @@ def load_events_and_onboarding():
     try:
         events = db.execute(text("""
             SELECT user_id, movie_id, event_type, rating_value
-            FROM events
+            FROM interactions_all
         """)).fetchall()
+
 
         onboarding = db.execute(text("""
             SELECT user_id, movie_id
@@ -119,13 +125,15 @@ def main():
     )
 
     # Train
-    model.fit(mat)
+    model.fit(mat.T)
+
 
 
     # Save factors
-   
-    np.save(os.path.join(ART_DIR, "user_factors.npy"), model.user_factors.astype(np.float32))
-    np.save(os.path.join(ART_DIR, "item_factors.npy"), model.item_factors.astype(np.float32))
+    # Swap because we trained on mat.T
+    np.save(os.path.join(ART_DIR, "user_factors.npy"), model.item_factors.astype(np.float32))
+    np.save(os.path.join(ART_DIR, "item_factors.npy"), model.user_factors.astype(np.float32))
+
 
     
     # Save mappings

@@ -3,6 +3,8 @@ import numpy as np
 import hnswlib
 
 ART_DIR = os.path.join(os.path.dirname(__file__), "..", "ml", "artifacts")
+
+
 VEC_DIR = os.path.join(ART_DIR, "vectors")
 HNSW_DIR = os.path.join(ART_DIR, "hnsw")
 

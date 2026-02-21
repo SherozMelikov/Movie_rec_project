@@ -12,8 +12,9 @@ import Home from "./pages/Home";
 import MovieDetails from "./pages/MovieDetails";
 import Recommendations from "./pages/Recommendations";
 
-import OnboardingGenres from "./pages/OnboardingGenres";
-import OnboardingMovies from "./pages/OnboardingMovies";
+
+import OnboardingWizard from "./pages/OnboardingWizard";
+
 import "./styles/navbar.css"; 
 function Navbar() {
   const { isAuthed, logout } = useAuth();
@@ -50,7 +51,7 @@ export default function App() {
   const location = useLocation();
 
   // No main navbar on these screens
-  const hideNavbarRoutes = ["/", "/login", "/register", "/onboarding/genres", "/onboarding/movies"];
+  const hideNavbarRoutes = ["/", "/login", "/register", "/onboarding/genres", "/onboarding"];
   const hideNavbar = hideNavbarRoutes.includes(location.pathname);
 
   return (
@@ -87,18 +88,10 @@ export default function App() {
 
           {/* Onboarding */}
           <Route
-            path="/onboarding/genres"
+            path="/onboarding"
             element={
               <ProtectedRoute>
-                <OnboardingGenres />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/onboarding/movies"
-            element={
-              <ProtectedRoute>
-                <OnboardingMovies />
+                <OnboardingWizard />
               </ProtectedRoute>
             }
           />

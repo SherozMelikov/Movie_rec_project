@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from app.core.auth import get_current_user
@@ -15,14 +15,6 @@ def create_event(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
-    # ✅ Only allow view events here
-    if payload.event_type != "view":
-        raise HTTPException(status_code=400, detail="Only 'view' events are supported on /events")
-
-    # rating_value not allowed for view
-    if payload.rating_value is not None:
-        raise HTTPException(status_code=400, detail="rating_value is not allowed for view")
-
     return event_service.create_view(
         db=db,
         user_id=user.user_id,

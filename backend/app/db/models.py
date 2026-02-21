@@ -78,20 +78,26 @@ class Tag(Base):
 
 class EventType(str, enum.Enum):
     view = "view"
-    like = "like"
-    rate = "rate"
 
 
 class Event(Base):
     __tablename__ = "events"
 
     id = Column(BigInteger, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.user_id", ondelete="CASCADE"), nullable=False, index=True)
-    movie_id = Column(Integer, ForeignKey("movies.movie_id", ondelete="CASCADE"), nullable=False, index=True)
+    user_id = Column(
+        Integer,
+        ForeignKey("users.user_id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    movie_id = Column(
+        Integer,
+        ForeignKey("movies.movie_id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
     event_type = Column(Enum(EventType, name="event_type"), nullable=False)
-    rating_value = Column(SmallInteger, nullable=True)
     ts = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
-
 
 class UserOnboarding(Base):
     __tablename__ = "user_onboarding"

@@ -1,36 +1,64 @@
-import React, { useEffect, useState } from "react";
-import { getRecommendations } from "../api/api";
-import MovieGrid from "../components/MovieGrid";
+import React, { useEffect, useState, useCallback } from "react";
+import { getRecommendationSections } from "../api/api";
+import MovieRow from "../components/MovieRow";
 
 export default function Recommendations() {
-  const [items, setItems] = useState([]);
+  const [sections, setSections] = useState([]);
   const [err, setErr] = useState("");
   const [loading, setLoading] = useState(true);
 
-  async function load() {
+  const refresh = useCallback(async () => {
+    try {
+      const data = await getRecommendationSections(12);
+      setSections(Array.isArray(data) ? data : []);
+    } catch (e) {
+      console.log("refresh failed", e);
+    }
+  }, []);
+
+  const loadInitial = useCallback(async () => {
     setErr("");
     setLoading(true);
     try {
-      const data = await getRecommendations(30);
-      setItems(Array.isArray(data) ? data : []);
+      const data = await getRecommendationSections(12);
+      setSections(Array.isArray(data) ? data : []);
     } catch (e) {
       setErr(e?.response?.data?.detail || "Failed to load recommendations (login required)");
     } finally {
       setLoading(false);
     }
-  }
-
-  useEffect(() => {
-    load();
   }, []);
 
-  if (loading) return <p>Loading...</p>;
+  useEffect(() => {
+    loadInitial();
+  }, [loadInitial]);
+
+  if (loading) {
+    return (
+      <div>
+        <h2 style={{ marginBottom: 6 }}>Recommendations</h2>
+        <MovieRow title="Just for you" subtitle="Loading…" loading={true} />
+        <MovieRow title="Because you liked…" subtitle="Loading…" loading={true} />
+        <MovieRow title="Trending" subtitle="Loading…" loading={true} />
+      </div>
+    );
+  }
+
   if (err) return <p style={{ color: "crimson" }}>{err}</p>;
 
   return (
     <div>
-      <h2>Your Recommendations</h2>
-      <MovieGrid items={items} />
+      <h2 style={{ marginBottom: 6 }}>Recommendations</h2>
+
+      {sections.map((s, idx) => (
+        <MovieRow
+          key={`${s.title}-${idx}`}
+          title={s.title}
+          subtitle={s.subtitle}
+          items={s.items || []}
+          onActionDone={refresh}
+        />
+      ))}
     </div>
   );
 }

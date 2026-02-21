@@ -1,42 +1,47 @@
+/* ===== GRID ===== */
 .movieGrid {
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 12px;
 }
 
 @media (max-width: 1200px) {
-  .movieGrid { grid-template-columns: repeat(4, 1fr); }
+  .movieGrid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
 
 @media (max-width: 860px) {
-  .movieGrid { grid-template-columns: repeat(3, 1fr); }
+  .movieGrid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 
 @media (max-width: 520px) {
-  .movieGrid { grid-template-columns: repeat(2, 1fr); }
+  .movieGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
-/* Optional: make cards feel more "Netflix-ish" */
+/* ===== CARD (shared) ===== */
 .movieCard {
   text-decoration: none;
   color: inherit;
-  border-radius: 14px;
-  overflow: hidden;
-  border: 1px solid rgba(255,255,255,0.10);
-  background: rgba(255,255,255,0.04);
-  transition: transform .08s ease, background .18s ease, border-color .18s ease;
-}
-
-.movieCard:hover {
-  transform: translateY(-2px);
-  background: rgba(255,255,255,0.06);
-  border-color: rgba(255,255,255,0.14);
+  display: block;
 }
 
 .moviePosterWrap {
+  position: relative;
   width: 100%;
   aspect-ratio: 2 / 3;
-  background: rgba(255,255,255,0.03);
+  border-radius: 16px;
+  overflow: hidden;
+
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.10);
+  box-shadow: 0 18px 50px rgba(0,0,0,0.45);
+
+  transition: transform .12s ease, border-color .18s ease, background .18s ease;
+}
+
+.movieCard:hover .moviePosterWrap {
+  transform: translateY(-2px);
+  background: rgba(255,255,255,0.06);
+  border-color: rgba(255,255,255,0.16);
 }
 
 .moviePoster {
@@ -46,41 +51,157 @@
   display: block;
 }
 
+/* fallback for missing posters */
 .moviePosterFallback {
   width: 100%;
   height: 100%;
-  background: rgba(255,255,255,0.08);
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  padding: 14px;
+  gap: 10px;
+  background:
+    radial-gradient(600px 240px at 30% 20%, rgba(255,255,255,0.10), transparent 60%),
+    rgba(255,255,255,0.04);
+}
+
+.fallbackBadge {
+  font-size: 12px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(255,255,255,0.06);
+  color: rgba(255,255,255,0.75);
+}
+
+.fallbackTitle {
+  text-align: center;
+  font-weight: 900;
+  font-size: 13px;
+  line-height: 1.2;
+  color: rgba(255,255,255,0.92);
+
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  overflow: hidden;
+}
+
+.movieGradient {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(0,0,0,0.78) 0%, rgba(0,0,0,0.0) 55%);
+  pointer-events: none;
 }
 
 .movieMeta {
-  padding: 10px;
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 10px;
   display: grid;
-  gap: 6px;
+  gap: 4px;
 }
 
 .movieTitle {
-  font-weight: 700;
+  font-weight: 900;
   font-size: 13px;
-  line-height: 1.2;
+  line-height: 1.25;
+  color: rgba(255,255,255,0.96);
 
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
-
-  line-clamp: 2; /* standard property */
-
+  line-clamp: 2;
   overflow: hidden;
 }
 
 .movieSub {
   font-size: 12px;
-  color: rgba(233,233,238,0.72);
+  color: rgba(255,255,255,0.72);
 
   display: -webkit-box;
   -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-
-  line-clamp: 2; /* standard property */
-
+  -webkit-line-clamp: 1;
+  line-clamp: 1;
   overflow: hidden;
+}
+
+/* ===== VARIANTS ===== */
+/* ✅ Row cards: fixed width, consistent, not tiny */
+.movieCard--row {
+  width: 190px;
+  flex: 0 0 190px;
+}
+
+/* Grid cards: full column width */
+.movieCard--grid {
+  width: 100%;
+}
+
+
+/* =========================
+   Skeleton (shimmer)
+   ========================= */
+
+.movieCard--skeleton {
+  pointer-events: none;
+}
+
+.skPoster,
+.skLine {
+  position: relative;
+  overflow: hidden;
+  border-radius: 12px;
+  background: rgba(255,255,255,0.07);
+}
+
+.skPoster::after,
+.skLine::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-120%);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255,255,255,0.10),
+    transparent
+  );
+  animation: skShimmer 1.15s infinite;
+}
+
+@keyframes skShimmer {
+  100% { transform: translateX(120%); }
+}
+
+.skPoster {
+  width: 100%;
+  height: 100%;
+  border-radius: 16px; /* match .moviePosterWrap */
+}
+
+.movieCard--skeleton .movieMeta {
+  display: grid;
+  gap: 6px;
+}
+
+.skLine {
+  height: 12px;
+  border-radius: 999px;
+}
+
+.skTitle {
+  height: 14px;
+  width: 78%;
+}
+
+.skSub {
+  width: 56%;
+  opacity: 0.9;
+}
+
+.movieCard--skeleton .moviePosterWrap {
+  transform: none !important;
 }

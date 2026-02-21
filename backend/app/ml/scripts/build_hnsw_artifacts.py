@@ -12,6 +12,8 @@ from app.db.database import SessionLocal
 from app.db.models import Movie
 
 ARTIFACT_DIR = os.path.join(os.path.dirname(__file__), "..", "artifacts")
+
+
 VEC_DIR = os.path.join(ARTIFACT_DIR, "vectors")
 HNSW_DIR = os.path.join(ARTIFACT_DIR, "hnsw")
 

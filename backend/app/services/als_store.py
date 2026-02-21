@@ -5,6 +5,7 @@ import numpy as np
 ART_DIR = os.path.join(os.path.dirname(__file__), "..", "ml", "artifacts", "als")
 
 
+
 class ALSStore:
     def __init__(self):
         self.user_factors = None

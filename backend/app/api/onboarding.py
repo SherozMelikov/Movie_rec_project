@@ -19,7 +19,6 @@ def save_onboarding(
     return onboarding_service.save_onboarding(
         db=db,
         user_id=user.user_id,
-        favorite_genres=payload.favorite_genres,
         picked_movie_ids=payload.picked_movie_ids,
     )
 
