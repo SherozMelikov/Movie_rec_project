@@ -1,14 +1,11 @@
 import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { browseMovies, getGenres, getMyOnboarding, saveOnboarding } from "../api/api";
+import { browseMovies, getMyOnboarding, saveOnboarding } from "../api/api";
 import "../styles/onboardingWizard.css";
 
-const GENRE_SHOW = 8;
-const GENRE_MIN = 3;
-const GENRE_MAX = 5;
-
-const MOVIE_SHOW = 6;
-const MOVIE_MIN = 3;
+const MOVIE_SHOW = 12;
+const MOVIE_MIN = 5;
+const MOVIE_MAX = 12;
 
 // helper
 function pickRandom(arr, n) {
@@ -28,6 +25,7 @@ function normalizeArrayResponse(x) {
 }
 
 function getMovieId(m, idx) {
+  // Prefer DB ID (stable). Fallbacks are for safety.
   return m?.movie_id ?? m?.id ?? m?.tmdb_id ?? m?.movieId ?? `${m?.title ?? "movie"}-${idx}`;
 }
 
@@ -38,13 +36,6 @@ function getPosterUrl(m) {
 export default function OnboardingWizard() {
   const nav = useNavigate();
 
-  const [step, setStep] = useState(1);
-
-  const [allGenres, setAllGenres] = useState([]);
-  const [shownGenres, setShownGenres] = useState([]);
-  const [genrePicks, setGenrePicks] = useState([]);
-  const [genreQuery, setGenreQuery] = useState("");
-
   const [moviePool, setMoviePool] = useState([]);
   const [movies, setMovies] = useState([]);
   const [moviePickedIds, setMoviePickedIds] = useState(new Set());
@@ -53,9 +44,7 @@ export default function OnboardingWizard() {
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState("");
 
-  const progressPct = step === 1 ? 50 : 100;
-
-  // Load onboarding prerequisites once
+  // Load once
   useEffect(() => {
     (async () => {
       try {
@@ -65,19 +54,8 @@ export default function OnboardingWizard() {
           return;
         }
 
-        // ---- Genres ----
-        const g = await getGenres();
-        const rawGenres = normalizeArrayResponse(g);
-
-        const cleanedGenres = [...new Set(rawGenres.map(String))]
-          .map((x) => x.trim())
-          .filter((x) => x && x.toLowerCase() !== "(no genres listed)");
-
-        setAllGenres(cleanedGenres);
-        setShownGenres(pickRandom(cleanedGenres, GENRE_SHOW));
-
-        // ---- Movies ----
-        const poolRaw = await browseMovies({ limit: 120 });
+        // IMPORTANT: keep limit <= backend max to avoid 422
+        const poolRaw = await browseMovies({ limit: 48 });
         const arr = normalizeArrayResponse(poolRaw);
 
         setMoviePool(arr);
@@ -87,87 +65,76 @@ export default function OnboardingWizard() {
 
         setMovies(pickRandom(base, MOVIE_SHOW));
       } catch (e) {
-        setErr("Failed to load onboarding.");
+        setErr("Couldn’t load movies. Please try again.");
       } finally {
         setLoading(false);
       }
     })();
   }, [nav]);
 
-  const canGoNext = useMemo(() => {
-    if (step === 1) return genrePicks.length >= GENRE_MIN;
-    return moviePickedIds.size >= MOVIE_MIN && movies.length > 0;
-  }, [step, genrePicks, moviePickedIds, movies]);
+  const pickedCount = moviePickedIds.size;
 
-  const footText = useMemo(() => {
-    if (step === 1) return `${genrePicks.length} selected (min ${GENRE_MIN}, max ${GENRE_MAX})`;
-    return `${moviePickedIds.size} selected (min ${MOVIE_MIN})`;
-  }, [step, genrePicks, moviePickedIds]);
+  const canFinish = useMemo(() => {
+    if (movies.length === 0) return false;
+    if (pickedCount < MOVIE_MIN) return false;
+    if (pickedCount > MOVIE_MAX) return false;
+    return true;
+  }, [movies.length, pickedCount]);
 
-  const toggleGenre = useCallback((g) => {
-    setErr("");
-    setGenrePicks((prev) => {
-      const has = prev.includes(g);
-      if (has) return prev.filter((x) => x !== g);
-      if (prev.length >= GENRE_MAX) {
-        setErr(`Max ${GENRE_MAX} genres. Unselect one to add another.`);
-        return prev;
-      }
-      return [...prev, g];
-    });
-  }, []);
+  const helperText = useMemo(() => {
+    if (pickedCount === 0) return `Choose a few movies you enjoy. You can change this later.`;
+    if (pickedCount < MOVIE_MIN) return `Pick ${MOVIE_MIN - pickedCount} more to continue.`;
+    if (pickedCount > MOVIE_MAX) return `Please keep it to ${MOVIE_MAX} or fewer.`;
+    return `Nice — this will personalize your recommendations.`;
+  }, [pickedCount]);
 
   const toggleMovie = useCallback((id) => {
     setErr("");
     setMoviePickedIds((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
+
+      // unpick
+      if (next.has(id)) {
+        next.delete(id);
+        return next;
+      }
+
+      // pick (respect max)
+      if (next.size >= MOVIE_MAX) {
+        // gentle, non-stressful message
+        setErr(`You can pick up to ${MOVIE_MAX}. Unpick one to add another.`);
+        return next;
+      }
+
+      next.add(id);
       return next;
     });
   }, []);
-
-  const showMoreGenres = useCallback(() => {
-    setErr("");
-    const q = genreQuery.trim().toLowerCase();
-    const filtered = q
-      ? allGenres.filter((g) => g.toLowerCase().includes(q))
-      : allGenres;
-    setShownGenres(pickRandom(filtered.length ? filtered : allGenres, GENRE_SHOW));
-  }, [allGenres, genreQuery]);
 
   const shuffleMovies = useCallback(() => {
     setErr("");
     const preferred = moviePool.filter((m) => !!getPosterUrl(m));
     const base = preferred.length ? preferred : moviePool;
+
     setMovies(pickRandom(base, MOVIE_SHOW));
-    setMoviePickedIds(new Set());
+    // Keep picks or reset? Netflix usually keeps picks.
+    // I’ll keep picks to reduce frustration:
+    // setMoviePickedIds(new Set());
   }, [moviePool]);
 
-  const goBack = useCallback(() => {
-    setErr("");
-    if (step === 2) setStep(1);
-  }, [step]);
-
-  const goNext = useCallback(() => {
+  const finish = useCallback(() => {
     setErr("");
 
-    if (step === 1) {
-      if (genrePicks.length < GENRE_MIN) {
-        setErr(`Pick at least ${GENRE_MIN} genres to continue.`);
-        return;
-      }
-      setStep(2);
-      return;
-    }
-
-    // Step 2 validation
     if (movies.length === 0) {
-      setErr("No movies loaded. Please click Shuffle/Retry.");
+      setErr("No movies loaded yet. Tap Shuffle to try again.");
       return;
     }
-    if (moviePickedIds.size < MOVIE_MIN) {
-      setErr(`Pick at least ${MOVIE_MIN} movies to continue.`);
+    if (pickedCount < MOVIE_MIN) {
+      setErr(`Pick ${MOVIE_MIN - pickedCount} more to continue.`);
+      return;
+    }
+    if (pickedCount > MOVIE_MAX) {
+      setErr(`Please pick ${MOVIE_MAX} or fewer.`);
       return;
     }
 
@@ -175,30 +142,26 @@ export default function OnboardingWizard() {
       setSaving(true);
       try {
         await saveOnboarding({
-          favorite_genres: genrePicks,
           picked_movie_ids: Array.from(moviePickedIds),
         });
         nav("/recommendations");
       } catch (e) {
-        setErr(e?.response?.data?.detail || "Failed to save onboarding.");
+        setErr(e?.response?.data?.detail || "Couldn’t save your picks. Please try again.");
       } finally {
         setSaving(false);
       }
     })();
-  }, [step, genrePicks, moviePickedIds, movies, nav]);
+  }, [moviePickedIds, movies.length, nav, pickedCount]);
 
   if (loading) {
     return (
       <div className="onbW-page">
         <div className="onbW-card">
           <div className="onbW-top">
-            <h2 className="onbW-title">Personalizing…</h2>
-            <div className="onbW-step">Step 1/2</div>
+            <h2 className="onbW-title">Setting things up…</h2>
           </div>
-          <p className="onbW-sub">Loading onboarding…</p>
-          <div className="onbW-progress">
-            <div className="onbW-progressFill" style={{ width: "35%" }} />
-          </div>
+          <p className="onbW-sub">Loading movies for you.</p>
+          {/* (No progress bar here = less pressure) */}
         </div>
       </div>
     );
@@ -207,162 +170,104 @@ export default function OnboardingWizard() {
   return (
     <div className="onbW-page">
       <div className="onbW-card">
-        {/* Header + stepper */}
+        {/* Header */}
         <div className="onbW-header">
           <div className="onbW-top">
-            <h2 className="onbW-title">
-              {step === 1 ? "Pick genres you like" : "Pick a few movies"}
-            </h2>
-            <div className="onbW-step">Step {step}/2</div>
-          </div>
+            <h2 className="onbW-title">Pick a few movies you like</h2>
 
-          <div className="onbW-stepper" aria-label="Onboarding steps">
-            <div className="onbW-stepLabel">
-              <span className={`onbW-dot ${step === 1 ? "onbW-dotActive" : ""}`} />
-              Genres
-            </div>
-            <span className="onbW-arrow">→</span>
-            <div className="onbW-stepLabel">
-              <span className={`onbW-dot ${step === 2 ? "onbW-dotActive" : ""}`} />
-              Movies
-            </div>
+            {/* Only show count once the user starts picking (less pressure) */}
+            {pickedCount > 0 ? (
+              <div className="onbW-step" style={{ fontWeight: 800 }}>
+                {pickedCount}/{MOVIE_MAX}
+              </div>
+            ) : null}
           </div>
         </div>
 
-        <p className="onbW-sub">
-          {step === 1
-            ? `Choose ${GENRE_MIN}+ genres (max ${GENRE_MAX}).`
-            : `Pick ${MOVIE_MIN}+ movies to improve your first recommendations.`}
-        </p>
-
-        <div className="onbW-progress">
-          <div className="onbW-progressFill" style={{ width: `${progressPct}%` }} />
-        </div>
+        <p className="onbW-sub">{helperText}</p>
 
         {err ? <div className="onbW-error">{err}</div> : null}
 
         <div className="onbW-body">
-          {step === 1 ? (
-            <>
-              <div className="onbW-inputRow">
-                <input
-                  className="onbW-input"
-                  value={genreQuery}
-                  onChange={(e) => setGenreQuery(e.target.value)}
-                  placeholder="Search genres…"
-                  onKeyDown={(e) => (e.key === "Enter" ? showMoreGenres() : null)}
-                />
-                <button type="button" className="onbW-secondary" onClick={showMoreGenres}>
-                  More
+          {movies.length === 0 ? (
+            <div className="onbW-empty">
+              <div className="onbW-emptyTitle">No movies to show</div>
+              <div className="onbW-emptySub">
+                Tap <b>Shuffle</b> to try again.
+              </div>
+              <div style={{ display: "flex", gap: 10, marginTop: 12 }}>
+                <button
+                  type="button"
+                  className="onbW-secondary"
+                  onClick={shuffleMovies}
+                  disabled={saving}
+                >
+                  Shuffle
                 </button>
               </div>
-
-              <div className="onbW-chips">
-                {shownGenres.map((g) => {
-                  const active = genrePicks.includes(g);
-                  const disabled = !active && genrePicks.length >= GENRE_MAX;
+              <div className="onbW-emptyMeta">
+                pool={moviePool.length} • shown={movies.length}
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="onbW-movieGrid">
+                {movies.map((m, idx) => {
+                  const id = getMovieId(m, idx);
+                  const active = moviePickedIds.has(id);
+                  const poster = getPosterUrl(m);
 
                   return (
                     <button
-                      key={g}
+                      key={id}
                       type="button"
-                      className={`onbW-chip ${active ? "onbW-chipActive" : ""}`}
-                      onClick={() => toggleGenre(g)}
-                      disabled={disabled}
+                      className={`onbW-miniCard ${active ? "onbW-miniCardActive" : ""}`}
+                      onClick={() => toggleMovie(id)}
                       aria-pressed={active}
-                      title={disabled ? `Max ${GENRE_MAX} genres` : ""}
+                      title={active ? "Selected (click to remove)" : "Click to select"}
                     >
-                      {g}
+                      {poster ? (
+                        <img className="onbW-miniPoster" src={poster} alt={m.title} />
+                      ) : (
+                        <div className="onbW-miniPh" />
+                      )}
+
+                      <div className="onbW-miniGrad" />
+                      <div className="onbW-miniHover" />
+
+                      <div className="onbW-miniMeta">
+                        <div className="onbW-miniTitle">{m.title}</div>
+                      </div>
+
+                      {active ? <div className="onbW-picked">✓ Selected</div> : null}
                     </button>
                   );
                 })}
               </div>
-            </>
-          ) : (
-            <>
-              {/* If movies are empty, show a friendly fallback instead of a blank page */}
-              {movies.length === 0 ? (
-                <div className="onbW-empty">
-                  <div className="onbW-emptyTitle">No movies loaded</div>
-                  <div className="onbW-emptySub">
-                    Click <b>Shuffle</b> to retry loading movies.
-                  </div>
-                  <div style={{ display: "flex", gap: 10, marginTop: 12 }}>
-                    <button type="button" className="onbW-secondary" onClick={shuffleMovies} disabled={saving}>
-                      Retry / Shuffle
-                    </button>
-                  </div>
-                  <div className="onbW-emptyMeta">
-                    pool={moviePool.length} • shown={movies.length}
-                  </div>
-                </div>
-              ) : (
-                <>
-                  <div className="onbW-movieGrid">
-                    {movies.map((m, idx) => {
-                      const id = getMovieId(m, idx);
-                      const active = moviePickedIds.has(id);
-                      const poster = getPosterUrl(m);
 
-                      return (
-                        <button
-                          key={id}
-                          type="button"
-                          className={`onbW-miniCard ${active ? "onbW-miniCardActive" : ""}`}
-                          onClick={() => toggleMovie(id)}
-                          aria-pressed={active}
-                          title={active ? "Unpick" : "Pick"}
-                        >
-                          {poster ? (
-                            <img className="onbW-miniPoster" src={poster} alt={m.title} />
-                          ) : (
-                            <div className="onbW-miniPh" />
-                          )}
+              {/* Tools row: keep it minimal */}
+              <div className="onbW-movieTools">
+                <button
+                  type="button"
+                  className="onbW-secondary"
+                  onClick={shuffleMovies}
+                  disabled={saving}
+                >
+                  Shuffle
+                </button>
 
-                          <div className="onbW-miniGrad" />
-                          <div className="onbW-miniHover" />
-                          <div className="onbW-miniCTA">{active ? "Picked" : "Pick"}</div>
-
-                          <div className="onbW-miniMeta">
-                            <div className="onbW-miniTitle">{m.title}</div>
-                          </div>
-
-                          {active ? <div className="onbW-picked">✓ Picked</div> : null}
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  <div className="onbW-movieTools">
-                    <div className="onbW-badge">
-                      Selected: <b>{moviePickedIds.size}</b> / {MOVIE_MIN} min
-                    </div>
-
-                    <button type="button" className="onbW-secondary" onClick={shuffleMovies} disabled={saving}>
-                      Shuffle
-                    </button>
-                  </div>
-                </>
-              )}
+                <button
+                  type="button"
+                  className="onbW-primary"
+                  onClick={finish}
+                  disabled={saving || !canFinish}
+                >
+                  {saving ? "Saving..." : "Continue"}
+                </button>
+              </div>
             </>
           )}
         </div>
-
-        {/* Footer actions */}
-        <div className="onbW-row">
-          <button className="onbW-secondary" onClick={goBack} disabled={saving || step === 1}>
-            Back
-          </button>
-
-          <div className="onbW-actions">
-            <button className="onbW-primary" onClick={goNext} disabled={saving || !canGoNext}>
-              {saving ? "Saving..." : step === 1 ? "Next →" : "Finish →"}
-            </button>
-          </div>
-        </div>
-
-        {/* show footnote only when user hasn't met the minimum */}
-        {!canGoNext ? <div className="onbW-footNote">{footText}</div> : null}
       </div>
     </div>
   );

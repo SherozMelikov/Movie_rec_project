@@ -51,7 +51,7 @@ export default function App() {
   const location = useLocation();
 
   // No main navbar on these screens
-  const hideNavbarRoutes = ["/", "/login", "/register", "/onboarding/genres", "/onboarding"];
+  const hideNavbarRoutes = ["/", "/login", "/register", "/onboarding"];
   const hideNavbar = hideNavbarRoutes.includes(location.pathname);
 
   return (

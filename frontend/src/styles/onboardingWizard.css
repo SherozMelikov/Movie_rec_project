@@ -31,9 +31,10 @@
   to   { transform: translateY(18px) scale(1.02); }
 }
 
+/* ✅ UPDATED: wider card so 6 columns can fit */
 .onbW-card {
-  width: min(680px, 94vw);
-  padding: 28px 28px 22px;
+  width: min(1160px, 96vw);     /* was min(680px, 94vw) */
+  padding: 22px 22px 18px;      /* slightly tighter to show more content */
   border-radius: 18px;
   background: rgba(255,255,255,0.04);
   border: 1px solid rgba(255,255,255,0.10);
@@ -237,23 +238,35 @@
   box-shadow: 0 0 0 4px rgba(229,9,20,0.14);
 }
 
-/* Mini movie cards */
+/* ✅ UPDATED: Mini movie cards grid (6 on desktop) */
 .onbW-movieGrid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
+  gap: 10px; /* was 12px */
+  grid-template-columns: repeat(6, minmax(0, 1fr)); /* was 3 */
 }
 
-@media (max-width: 720px) {
+/* 4 per row */
+@media (max-width: 1100px) {
+  .onbW-movieGrid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+
+/* 3 per row */
+@media (max-width: 820px) {
+  .onbW-movieGrid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+/* 2 per row */
+@media (max-width: 560px) {
   .onbW-movieGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
-@media (max-width: 520px) {
+/* 1 per row (very small screens) */
+@media (max-width: 380px) {
   .onbW-movieGrid { grid-template-columns: 1fr; }
 }
 
 .onbW-miniCard {
-  border-radius: 16px;
+  border-radius: 14px; /* slightly smaller (was 16px) */
   overflow: hidden;
   border: 1px solid rgba(255,255,255,0.10);
   background: rgba(255,255,255,0.05);
@@ -265,7 +278,7 @@
 }
 
 .onbW-miniCard:hover {
-  transform: translateY(-2px);
+  transform: translateY(-1px); /* slightly less lift (was -2px) */
   background: rgba(255,255,255,0.07);
   border-color: rgba(255,255,255,0.16);
 }
@@ -336,7 +349,7 @@
 
 .onbW-miniTitle {
   font-weight: 950;
-  font-size: 12px;
+  font-size: 11px; /* slightly smaller to fit small cards */
   line-height: 1.2;
   color: rgba(255,255,255,0.96);
   display: -webkit-box;
