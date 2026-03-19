@@ -11,7 +11,23 @@ from app.api.likes import router as likes_router
 from app.api.ratings import router as ratings_router
 from app.api.events import router as events_router
 
-app = FastAPI()
+
+##########
+from contextlib import asynccontextmanager
+from app.services.startup import run_startup
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # 🔥 All startup logic is handled here
+    run_startup()
+    yield
+
+
+
+app = FastAPI(lifespan=lifespan)
+##############
+
 
 app.add_middleware(
     CORSMiddleware,

@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from app.core.auth import get_current_user
 from app.db.database import get_db
 from app.db.models import Like, Movie, User
-
+from fastapi import HTTPException
 router = APIRouter(tags=["Likes"])
 
 @router.get("/{movie_id}")
@@ -21,7 +21,7 @@ def is_liked(movie_id: int, db: Session = Depends(get_db), user: User = Depends(
 def like_movie(movie_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     # validate movie
     if not db.query(Movie.movie_id).filter(Movie.movie_id == movie_id).first():
-        from fastapi import HTTPException
+        
         raise HTTPException(status_code=404, detail="Movie not found")
 
     existing = (
