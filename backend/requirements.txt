@@ -10,7 +10,7 @@ certifi==2026.1.4
 cffi==2.0.0
 charset-normalizer==3.4.4
 click==8.3.1
-colorama @ file:///home/conda/feedstock_root/build_artifacts/colorama_1733218098505/work
+colorama==0.4.6
 cryptography==46.0.5
 dnspython==2.8.0
 ecdsa==0.19.1
@@ -18,13 +18,13 @@ email-validator==2.3.0
 fastapi==0.122.0
 greenlet==3.3.1
 h11==0.16.0
-hnswlib @ file:///D:/bld/hnswlib_1756566549389/work
+hnswlib==0.8.0
 idna==3.11
-implicit @ file:///D:/bld/implicit_1754609350610/work
+implicit==0.7.2
 jmespath==1.1.0
 joblib==1.5.2
 numpy==2.3.5
-packaging @ file:///C:/miniconda3/conda-bld/packaging_1761049096285/work
+packaging==25.0
 pandas==2.3.3
 passlib==1.7.4
 psycopg2-binary==2.9.11
@@ -45,8 +45,8 @@ six==1.17.0
 sniffio==1.3.1
 SQLAlchemy==2.0.46
 starlette==0.50.0
-threadpoolctl @ file:///home/conda/feedstock_root/build_artifacts/threadpoolctl_1741878222898/work
-tqdm @ file:///D:/bld/bld/rattler-build_tqdm_1770153445/work
+threadpoolctl==3.6.0
+tqdm==4.67.3
 typing-inspection==0.4.2
 typing_extensions==4.15.0
 tzdata==2025.2
