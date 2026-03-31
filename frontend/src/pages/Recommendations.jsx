@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import { getRecommendationSections } from "../api/api";
 import MovieRow from "../components/MovieRow";
 
@@ -6,6 +6,7 @@ export default function Recommendations() {
   const [sections, setSections] = useState([]);
   const [err, setErr] = useState("");
   const [loading, setLoading] = useState(true);
+  const didLoadRef = useRef(false);
 
   const refresh = useCallback(async () => {
     try {
@@ -30,6 +31,8 @@ export default function Recommendations() {
   }, []);
 
   useEffect(() => {
+    if (didLoadRef.current) return;
+    didLoadRef.current = true;
     loadInitial();
   }, [loadInitial]);
 

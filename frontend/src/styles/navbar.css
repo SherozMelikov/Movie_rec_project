@@ -22,6 +22,8 @@
   gap: 10px;
   font-weight: 900;
   letter-spacing: -0.02em;
+  min-width: 0;
+  flex-shrink: 0;
 }
 
 .brand-badge {
@@ -33,12 +35,14 @@
   place-items: center;
   font-weight: 900;
   color: white;
+  flex-shrink: 0;
 }
 
 .nav-links {
   display: flex;
   gap: 14px;
   margin-left: 10px;
+  min-width: 0;
 }
 
 .nav-link {
@@ -48,6 +52,7 @@
   padding: 8px 10px;
   border-radius: 10px;
   transition: background .18s ease, color .18s ease;
+  white-space: nowrap;
 }
 
 .nav-link:hover {
@@ -70,6 +75,7 @@
   border-radius: 12px;
   cursor: pointer;
   font-weight: 700;
+  white-space: nowrap;
 }
 
 .nav-btnPrimary {
@@ -79,4 +85,144 @@
 
 .nav-btnPrimary:hover {
   background: #f1121d;
+}
+
+@media (max-width: 860px) {
+  .nav-inner {
+    padding: 12px 14px;
+    gap: 10px;
+  }
+
+  .nav-links {
+    gap: 10px;
+    margin-left: 4px;
+  }
+
+  .nav-link,
+  .nav-btn {
+    font-size: 13px;
+    padding: 8px 10px;
+  }
+}
+
+@media (max-width: 560px) {
+  .nav-inner {
+    padding: 10px 12px;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .brand {
+    font-size: 14px;
+    gap: 8px;
+  }
+
+  .brand-badge {
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+    font-size: 13px;
+  }
+
+  .nav-links {
+    display: flex;
+    gap: 6px;
+    margin-left: 0;
+    flex-wrap: wrap;
+    min-width: 0;
+  }
+
+  .nav-link {
+    font-size: 12px;
+    padding: 7px 8px;
+  }
+
+  .nav-right {
+    margin-left: auto;
+    gap: 6px;
+  }
+
+  .nav-btn {
+    font-size: 12px;
+    padding: 7px 9px;
+    border-radius: 10px;
+  }
+}
+
+
+/* For small phone siz that has 380px */
+@media (max-width: 380px) {
+  .nav-inner {
+    padding: 8px 10px;
+    gap: 6px;
+  }
+
+  .brand {
+    font-size: 13px;
+    gap: 6px;
+  }
+
+  .brand-badge {
+    width: 22px;
+    height: 22px;
+    font-size: 12px;
+  }
+
+  .nav-links {
+    gap: 4px;
+  }
+
+  .nav-link {
+    font-size: 11px;
+    padding: 6px 7px;
+  }
+
+  .nav-btn {
+    font-size: 11px;
+    padding: 6px 8px;
+  }
+}
+
+
+
+
+
+/* For small phone siz that has 340px */
+@media (max-width: 340px) {
+  .nav-inner {
+    padding: 8px;
+    gap: 6px;
+  }
+
+  .brand {
+    font-size: 12px;
+    gap: 6px;
+  }
+
+  .brand-badge {
+    width: 20px;
+    height: 20px;
+    font-size: 11px;
+    border-radius: 5px;
+  }
+
+  .nav-links {
+    gap: 4px;
+  }
+
+  .nav-link {
+    font-size: 10px;
+    padding: 5px 6px;
+  }
+
+  .nav-right {
+    margin-left: auto;
+  }
+
+  .nav-btn {
+    font-size: 10px;
+    padding: 5px 7px;
+    border-radius: 8px;
+  }
 }

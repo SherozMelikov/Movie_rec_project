@@ -1,10 +1,11 @@
-/* ===== Movie Details (production-ish) ===== */
+/* ===== Movie Details ===== */
 
 .md-page {
   min-height: 100vh;
-  background: radial-gradient(1200px 600px at 20% 10%, rgba(255,255,255,0.06), transparent 60%),
-              radial-gradient(900px 500px at 90% 0%, rgba(255,255,255,0.05), transparent 55%),
-              #0b0c10;
+  background:
+    radial-gradient(1200px 600px at 20% 10%, rgba(255,255,255,0.06), transparent 60%),
+    radial-gradient(900px 500px at 90% 0%, rgba(255,255,255,0.05), transparent 55%),
+    #0b0c10;
   color: #e9e9ee;
 }
 
@@ -16,50 +17,52 @@
 
 .md-hero {
   display: grid;
-  grid-template-columns: 240px 1fr;
-  gap: 18px;
-  padding: 18px;
+  grid-template-columns: 280px 1fr;
+  gap: 22px;
+  padding: 22px;
   border: 1px solid rgba(255,255,255,0.08);
   background: rgba(255,255,255,0.04);
   border-radius: 18px;
   backdrop-filter: blur(10px);
   box-shadow: 0 20px 60px rgba(0,0,0,0.45);
+  align-items: start;
 }
 
 @media (max-width: 860px) {
-  .md-hero { grid-template-columns: 1fr; }
+  .md-hero {
+    grid-template-columns: 1fr;
+  }
 }
 
 .md-posterWrap {
-  display: grid;
-  place-items: start;
-}
-
-.md-poster {
-  width: 240px;
+  width: 280px;
   aspect-ratio: 2 / 3;
-  border-radius: 16px;
-  object-fit: cover;
+  border-radius: 18px;
+  overflow: hidden;
+  display: block;
+  flex-shrink: 0;
   box-shadow: 0 18px 45px rgba(0,0,0,0.5);
   border: 1px solid rgba(255,255,255,0.08);
 }
 
-@media (max-width: 860px) {
-  .md-poster { width: 180px; }
+.md-poster {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
 }
 
 .md-posterPh {
-  width: 240px;
-  aspect-ratio: 2 / 3;
-  border-radius: 16px;
+  width: 100%;
+  height: 100%;
   background: rgba(255,255,255,0.06);
-  border: 1px solid rgba(255,255,255,0.08);
 }
 
 .md-meta {
   display: grid;
   gap: 10px;
   align-content: start;
+  min-width: 0;
 }
 
 .md-titleRow {
@@ -92,6 +95,7 @@
   border-radius: 999px;
   border: 1px solid rgba(255,255,255,0.10);
   background: rgba(255,255,255,0.05);
+  max-width: 100%;
 }
 
 .md-overview {
@@ -99,6 +103,7 @@
   color: rgba(233,233,238,0.86);
   line-height: 1.6;
   font-size: 14px;
+  max-width: 70ch;
 }
 
 .md-actions {
@@ -108,7 +113,7 @@
   margin-top: 10px;
 }
 
-/* --- Like (heart) button --- */
+/* Like button */
 .iconBtn {
   width: 48px;
   height: 48px;
@@ -131,30 +136,34 @@
 }
 
 .heartActive {
-  color: #e50914; /* red heart */
+  color: #e50914;
 }
 
-/* --- Rating stars --- */
+/* Rating */
 .md-stars {
   display: inline-flex;
   gap: 6px;
+  flex-wrap: wrap;
 }
 
-.starIcon {
+.starBtn {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  line-height: 1;
   font-size: 28px;
   cursor: pointer;
   color: rgba(255,255,255,0.25);
   transition: transform 0.1s ease, color 0.15s ease;
 }
 
-.starIcon:hover {
+.starBtn:hover {
   transform: scale(1.15);
 }
 
-.starFilled {
-  color: #ffd54a; /* yellow */
+.starBtn.starFilled {
+  color: #ffd54a;
 }
-
 
 .md-section {
   margin-top: 18px;
@@ -166,45 +175,6 @@
   letter-spacing: -0.01em;
 }
 
-.sim-grid {
-  display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  gap: 12px;
-}
-
-@media (max-width: 1200px) { .sim-grid { grid-template-columns: repeat(4, 1fr); } }
-@media (max-width: 860px)  { .sim-grid { grid-template-columns: repeat(3, 1fr); } }
-@media (max-width: 520px)  { .sim-grid { grid-template-columns: repeat(2, 1fr); } }
-
-.sim-card {
-  display: grid;
-  gap: 6px;
-  padding: 12px;
-  border-radius: 14px;
-  border: 1px solid rgba(255,255,255,0.08);
-  background: rgba(255,255,255,0.04);
-  text-decoration: none;
-  color: inherit;
-  transition: transform .08s ease, background .18s ease, border-color .18s ease;
-}
-.sim-card:hover {
-  transform: translateY(-2px);
-  background: rgba(255,255,255,0.06);
-  border-color: rgba(255,255,255,0.12);
-}
-
-.sim-title {
-  font-weight: 700;
-  font-size: 13px;
-  line-height: 1.25;
-}
-
-.sim-genres {
-  color: rgba(233,233,238,0.70);
-  font-size: 12px;
-  line-height: 1.25;
-}
-
 .md-muted {
   color: rgba(233,233,238,0.72);
 }
@@ -214,22 +184,19 @@
   padding: 20px;
 }
 
-
-/* MovieDetails skeleton poster */
+/* Skeleton */
 .mdSkPoster {
-  width: 240px;
-  aspect-ratio: 2 / 3;
-  border-radius: 16px;
-  border: 1px solid rgba(255,255,255,0.08);
+  width: 100%;
+  height: 100%;
   background: rgba(255,255,255,0.06);
   overflow: hidden;
   position: relative;
 }
 
-.mdSkPoster::after{
-  content:"";
-  position:absolute;
-  inset:0;
+.mdSkPoster::after {
+  content: "";
+  position: absolute;
+  inset: 0;
   transform: translateX(-120%);
   background: linear-gradient(
     90deg,
@@ -238,4 +205,146 @@
     transparent
   );
   animation: skShimmer 1.15s infinite;
+}
+
+@keyframes skShimmer {
+  100% {
+    transform: translateX(120%);
+  }
+}
+
+/* ===== MOBILE ===== */
+@media (max-width: 860px) {
+  .md-posterWrap {
+    width: 220px;
+    margin: 0 auto;
+  }
+}
+
+@media (max-width: 520px) {
+  .md-container {
+    padding: 16px 12px 28px;
+  }
+
+  .md-hero {
+    gap: 14px;
+    padding: 14px;
+    border-radius: 16px;
+    grid-template-columns: 1fr;
+  }
+
+  .md-posterWrap {
+    width: 190px;
+    border-radius: 14px;
+    margin: 0 auto;
+  }
+
+  .md-title {
+    font-size: 22px;
+    line-height: 1.15;
+  }
+
+  .md-sub {
+    gap: 8px;
+    font-size: 12px;
+  }
+
+  .md-pill {
+    padding: 5px 9px;
+    font-size: 12px;
+  }
+
+  .md-overview {
+    font-size: 13px;
+    line-height: 1.55;
+  }
+
+  .iconBtn {
+    width: 44px;
+    height: 44px;
+    font-size: 20px;
+    border-radius: 12px;
+  }
+
+  .starBtn {
+    font-size: 24px;
+  }
+
+  .md-sectionTitle {
+    font-size: 17px;
+  }
+}
+
+/* ===== VERY SMALL PHONES (320px target) ===== */
+@media (max-width: 360px) {
+  .md-container {
+    padding: 12px 10px 24px;
+  }
+
+  .md-hero {
+    gap: 12px;
+    padding: 12px;
+    border-radius: 14px;
+  }
+
+  .md-posterWrap {
+    width: 160px;
+    border-radius: 12px;
+    margin: 0 auto;
+  }
+
+  .md-title {
+    font-size: 18px;
+    line-height: 1.2;
+  }
+
+  .md-sub {
+    gap: 6px;
+    font-size: 11px;
+  }
+
+  .md-pill {
+    gap: 5px;
+    padding: 5px 8px;
+    font-size: 11px;
+  }
+
+  .md-meta {
+    gap: 8px;
+  }
+
+  .md-actions {
+    gap: 8px;
+    margin-top: 8px;
+  }
+
+  .iconBtn {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    font-size: 18px;
+  }
+
+  .md-stars {
+    gap: 4px;
+  }
+
+  .starBtn {
+    font-size: 22px;
+  }
+
+  .md-overview {
+    font-size: 13px;
+    line-height: 1.55;
+    margin-top: 2px;
+  }
+
+  .md-section {
+    margin-top: 16px;
+  }
+
+  .md-sectionTitle {
+    font-size: 16px;
+    margin-bottom: 8px;
+  }
 }

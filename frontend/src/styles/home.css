@@ -1,5 +1,3 @@
-/* src/styles/home.css */
-
 .homePage {
   min-height: 100vh;
 }
@@ -35,16 +33,18 @@
 .homeHeroOverlay {
   position: absolute;
   inset: 0;
-  background: radial-gradient(900px 260px at 20% 10%, rgba(255,255,255,0.12), transparent 60%),
-              linear-gradient(to right, rgba(0,0,0,0.78), rgba(0,0,0,0.25));
+  background:
+    radial-gradient(900px 260px at 20% 10%, rgba(255,255,255,0.12), transparent 60%),
+    linear-gradient(to right, rgba(0,0,0,0.78), rgba(0,0,0,0.25));
 }
 
 .homeHeroContent {
   position: relative;
-  padding: 18px 18px 18px;
+  padding: 18px;
   max-width: 720px;
   display: grid;
   gap: 10px;
+  z-index: 1;
 }
 
 .homeHeroBadge {
@@ -60,7 +60,7 @@
 
 .homeHeroTitle {
   margin: 0;
-  font-size: 34px;
+  font-size: clamp(28px, 5vw, 46px);
   letter-spacing: -0.02em;
   line-height: 1.12;
 }
@@ -82,20 +82,18 @@
   border: 1px solid rgba(255,255,255,0.10);
   background: rgba(255,255,255,0.05);
 }
+
 .homeHeroText {
   margin: 0;
   color: rgba(233,233,238,0.85);
   line-height: 1.6;
   font-size: 14px;
-
   overflow: hidden;
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 3;
 }
 
-
-/* Buttons */
 .homeHeroActions {
   display: flex;
   gap: 10px;
@@ -110,6 +108,7 @@
   font-weight: 700;
   cursor: pointer;
   border: 1px solid rgba(255,255,255,0.14);
+  min-height: 42px;
 }
 
 .btnPrimary {
@@ -161,6 +160,7 @@
 
 .homeInput {
   flex: 1;
+  min-width: 0;
   height: 42px;
   border-radius: 14px;
   border: 1px solid rgba(255,255,255,0.14);
@@ -187,15 +187,243 @@
   font-size: 13px;
 }
 
+/* tablet */
 @media (max-width: 860px) {
+  .homeContainer {
+    padding: 18px 14px 34px;
+  }
+
   .homeHeader {
     flex-direction: column;
     align-items: stretch;
   }
+
   .homeSearch {
     min-width: unset;
+    width: 100%;
   }
+
+  .homeHero {
+    min-height: 220px;
+  }
+
   .homeHeroTitle {
-    font-size: 26px;
+    font-size: 30px;
+  }
+
+  .homeHeroContent {
+    max-width: 100%;
+  }
+}
+
+/* phone */
+@media (max-width: 560px) {
+  .homeContainer {
+    padding: 10px 8px 24px;
+  }
+
+  .homeHero {
+    border-radius: 16px;
+    min-height: 200px;
+  }
+
+  .homeHeroContent {
+    padding: 16px 14px;
+    gap: 8px;
+  }
+
+  .homeHeroTitle {
+    font-size: 24px;
+    line-height: 1.1;
+  }
+
+  .homeHeroText {
+    font-size: 13px;
+    -webkit-line-clamp: 4;
+  }
+
+  .homeHeroMeta {
+    gap: 8px;
+    font-size: 12px;
+  }
+
+  .pill {
+    padding: 5px 8px;
+    font-size: 12px;
+  }
+
+  .homeHeroActions {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .btnPrimary,
+  .btnGhost {
+    flex: 1 1 auto;
+    justify-content: center;
+    text-align: center;
+    padding: 10px 12px;
+  }
+
+  .homeTitle {
+    font-size: 18px;
+  }
+
+  .homeSub,
+  .homeHint,
+  .homeError {
+    font-size: 12px;
+  }
+
+  .homeSearch {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .homeInput,
+  .btnPrimary,
+  .btnGhost {
+    width: 100%;
+  }
+}
+
+@media (max-width: 380px) {
+  .homeContainer {
+    padding: 8px 6px 20px;
+  }
+
+  .homeHeroContent {
+    padding: 12px 10px;
+  }
+
+  .homeHeroTitle {
+    font-size: 20px;
+  }
+
+  .homeHeroText {
+    font-size: 12px;
+    line-height: 1.4;
+  }
+
+  .homeTitle {
+    font-size: 17px;
+  }
+
+  .homeSub,
+  .homeHint,
+  .homeError {
+    font-size: 11px;
+  }
+
+  .pill {
+    font-size: 11px;
+    padding: 4px 7px;
+  }
+
+  .btnPrimary,
+  .btnGhost {
+    min-height: 36px;
+    font-size: 12px;
+    padding: 8px 10px;
+  }
+
+  .homeInput {
+    height: 38px;
+    font-size: 13px;
+  }
+}
+
+
+@media (max-width: 380px) {
+  .homeHero {
+    min-height: auto;
+    border-radius: 14px;
+    margin-bottom: 14px;
+  }
+
+  .homeHeroContent {
+    padding: 12px 10px;
+    gap: 7px;
+  }
+
+  .homeHeroBadge {
+    font-size: 10px;
+    padding: 5px 8px;
+  }
+
+  .homeHeroTitle {
+    font-size: 18px;
+    line-height: 1.1;
+  }
+
+  .homeHeroMeta {
+    gap: 6px;
+    font-size: 11px;
+  }
+
+  .pill {
+    padding: 4px 7px;
+    font-size: 11px;
+  }
+
+  .homeHeroText {
+    font-size: 12px;
+    line-height: 1.4;
+    -webkit-line-clamp: 2;
+  }
+
+  .homeHeroActions {
+    gap: 6px;
+    margin-top: 2px;
+  }
+
+  .homeHeroActions .btnPrimary,
+  .homeHeroActions .btnGhost {
+    min-height: 36px;
+    padding: 8px 10px;
+    font-size: 12px;
+    border-radius: 10px;
+  }
+}
+
+
+
+
+
+@media (max-width: 380px) {
+  .homeHeader {
+    gap: 8px;
+    margin: 6px 0 10px;
+  }
+
+  .homeTitle {
+    font-size: 16px;
+    line-height: 1.1;
+  }
+
+  .homeSub {
+    margin: 4px 0 0;
+    font-size: 11px;
+    line-height: 1.35;
+  }
+
+  .homeSearch {
+    gap: 6px;
+  }
+
+  .homeInput {
+    height: 36px;
+    border-radius: 12px;
+    padding: 0 10px;
+    font-size: 12px;
+  }
+
+  .homeSearch .btnPrimary,
+  .homeSearch .btnGhost {
+    min-height: 34px;
+    padding: 7px 10px;
+    font-size: 12px;
+    border-radius: 10px;
   }
 }

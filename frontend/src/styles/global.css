@@ -1,21 +1,50 @@
-html, body, #root { height: 100%; }
+html, body, #root {
+  min-height: 100%;
+  width: 100%;
+}
 
-html { scrollbar-gutter: stable; }
+html {
+  scrollbar-gutter: stable;
+  -webkit-text-size-adjust: 100%;
+}
 
 body {
   margin: 0;
   padding: 0;
   background: #0b0c10;
   color: #e9e9ee;
-  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  overflow-x: hidden;
 }
 
-
-* {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
+}
+
+img {
+  display: block;
+  max-width: 100%;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
 }
 
 a {
   color: inherit;
   text-decoration: none;
+}
+.pageShell {
+  padding: clamp(8px, 3vw, 16px);
+}
+
+@media (max-width: 560px) {
+  .pageShell {
+    padding: 8px;
+  }
 }

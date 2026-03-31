@@ -58,7 +58,7 @@ export default function App() {
     <div>
       {!hideNavbar && <Navbar />}
 
-      <div style={{ padding: hideNavbar ? 0 : 16 }}>
+      <div className={hideNavbar ? "" : "pageShell"}>
         <Routes>
           {/* Landing */}
           <Route path="/" element={<GetStarted />} />

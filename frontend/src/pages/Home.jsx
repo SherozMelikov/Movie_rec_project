@@ -1,5 +1,4 @@
-// src/pages/Home.jsx
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { browseMovies, searchMovies } from "../api/api";
 import MovieGrid from "../components/MovieGrid";
 import "../styles/home.css";
@@ -18,6 +17,7 @@ export default function Home() {
   const [movies, setMovies] = useState([]);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
+  const didLoadRef = useRef(false);
 
   async function loadBrowse() {
     setErr("");
@@ -50,6 +50,8 @@ export default function Home() {
   }
 
   useEffect(() => {
+    if (didLoadRef.current) return;
+    didLoadRef.current = true;
     loadBrowse();
   }, []);
 
@@ -65,7 +67,6 @@ export default function Home() {
   return (
     <div className="homePage">
       <div className="homeContainer">
-        {/* HERO */}
         {featured ? (
           <div className="homeHero">
             <div
@@ -96,9 +97,7 @@ export default function Home() {
                 <button
                   className="btnPrimary"
                   type="button"
-                  onClick={() =>
-                    (window.location.href = `/movies/${featured.movie_id ?? featured.id}`)
-                  }
+                  onClick={() => (window.location.href = `/movies/${featured.movie_id ?? featured.id}`)}
                 >
                   More Info
                 </button>
@@ -111,7 +110,6 @@ export default function Home() {
           </div>
         ) : null}
 
-        {/* HEADER + SEARCH */}
         <div className="homeHeader">
           <div>
             <h2 className="homeTitle">Browse</h2>
@@ -136,7 +134,6 @@ export default function Home() {
 
         {err ? <div className="homeError">{err}</div> : null}
 
-        {/* ✅ Skeleton only when list is empty (best UX) */}
         <MovieGrid items={movies} loading={loading && movies.length === 0} skeletonCount={24} />
       </div>
     </div>

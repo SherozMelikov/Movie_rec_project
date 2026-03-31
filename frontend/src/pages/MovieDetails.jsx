@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import {
   getMovie,
@@ -13,6 +13,12 @@ import {
 
 import MovieGrid from "../components/MovieGrid";
 import "../styles/movieDetails.css";
+
+/**
+ * Survives React StrictMode remounts in development
+ * because it lives outside the component instance.
+ */
+const trackedViews = new Set();
 
 export default function MovieDetails() {
   const { movieId } = useParams();
@@ -33,8 +39,12 @@ export default function MovieDetails() {
       setLoading(true);
 
       try {
-        // don’t block UI if analytics fails
-        trackView(movieId);
+        // Prevent duplicate POST /events for the same movie id
+        // during React StrictMode remounts in development
+        if (movieId && !trackedViews.has(movieId)) {
+          trackedViews.add(movieId);
+          await trackView(movieId);
+        }
 
         const [m, sim, likedRes, ratingRes] = await Promise.all([
           getMovie(movieId),
@@ -59,10 +69,26 @@ export default function MovieDetails() {
     }
 
     load();
+
     return () => {
       alive = false;
     };
   }, [movieId]);
+
+  const genreList = useMemo(() => {
+    if (!movie?.genres) return [];
+
+    if (Array.isArray(movie.genres)) {
+      return movie.genres.filter(Boolean);
+    }
+
+    return String(movie.genres)
+      .split("|")
+      .map((g) => g.trim())
+      .filter(Boolean);
+  }, [movie]);
+
+  const genreText = genreList.join(" · ");
 
   async function onToggleLike() {
     try {
@@ -74,7 +100,7 @@ export default function MovieDetails() {
         setLiked(true);
       }
     } catch {
-      // optional: toast
+      // optional toast later
     }
   }
 
@@ -84,7 +110,7 @@ export default function MovieDetails() {
       const res = await setRating(movieId, score);
       setMyRating(res?.score ?? score);
     } catch {
-      // optional: toast
+      // optional toast later
     }
   }
 
@@ -109,17 +135,12 @@ export default function MovieDetails() {
 
           <div className="md-section">
             <h2 className="md-sectionTitle">Similar movies</h2>
-            {/* reuse MovieGrid skeleton */}
-            <div style={{ marginTop: 10 }}>
-              {/* if you imported MovieGrid already, use it: */}
-              {/* <MovieGrid items={[]} loading={true} skeletonCount={12} /> */}
-            </div>
+            <div style={{ marginTop: 10 }} />
           </div>
         </div>
       </div>
     );
   }
-
 
   if (err) {
     return (
@@ -157,35 +178,38 @@ export default function MovieDetails() {
             </div>
 
             <div className="md-sub">
-              {movie.release_date ? <span className="md-pill">📅 {movie.release_date}</span> : null}
-              {movie.genres ? <span className="md-pill">🎭 {movie.genres}</span> : null}
-              <span className="md-pill">ID: {movie.movie_id}</span>
+              {movie.release_date ? (
+                <span className="md-pill">📅 {movie.release_date}</span>
+              ) : null}
+
+              {genreText ? <span className="md-pill">🎭 {genreText}</span> : null}
             </div>
 
             <div className="md-actions">
-              {/* Heart like button */}
               <button
                 type="button"
                 className="iconBtn"
                 onClick={onToggleLike}
                 title={liked ? "Unlike" : "Like"}
+                aria-label={liked ? "Unlike movie" : "Like movie"}
               >
                 <span className={liked ? "heart heartActive" : "heart"}>
                   {liked ? "♥" : "♡"}
                 </span>
               </button>
 
-              {/* Star rating */}
-              <div className="md-stars">
+              <div className="md-stars" aria-label="Movie rating">
                 {[1, 2, 3, 4, 5].map((s) => (
-                  <span
+                  <button
                     key={s}
-                    className={`starIcon ${rating >= s ? "starFilled" : ""}`}
+                    type="button"
+                    className={`starBtn ${rating >= s ? "starFilled" : ""}`}
                     onClick={() => onRate(s)}
                     title={`Rate ${s}`}
+                    aria-label={`Rate ${s} star${s > 1 ? "s" : ""}`}
                   >
                     ★
-                  </span>
+                  </button>
                 ))}
               </div>
             </div>
@@ -196,7 +220,6 @@ export default function MovieDetails() {
           </div>
         </div>
 
-        {/* ✅ Similar movies now uses MovieGrid + MovieCard */}
         <div className="md-section">
           <h2 className="md-sectionTitle">Similar movies</h2>
 

@@ -24,7 +24,7 @@ export default function Login() {
       const next = { ...prev };
       delete next[name];
       return next;
-    });
+    }); 
   }
 
   async function onSubmit(e) {
@@ -50,53 +50,57 @@ export default function Login() {
   return (
     <div className="auth-page">
       <div className="auth-card">
+        <div className="auth-brand">
+          <div className="auth-logo">M</div>
+          <div className="auth-name">MovieRec</div>
+        </div>
+
         <h2>Sign In</h2>
+        <p className="auth-subtitle">Welcome back. Sign in to continue.</p>
 
         {formError ? (
-          <div className="auth-error" style={{ marginBottom: 12 }}>
+          <div className="auth-error auth-error-banner">
             {formError}
           </div>
         ) : null}
 
         <form onSubmit={onSubmit}>
-          <input
-            className="auth-input"
-            placeholder="Username"
-            value={username}
-            onChange={(e) => {
-              setUsername(e.target.value);
-              clearFieldError("username");
-              setFormError("");
-            }}
-            aria-invalid={!!fieldErrors.username}
-            style={fieldErrors.username ? { outline: "2px solid #e50914" } : undefined}
-            required
-          />
-          {fieldErrors.username ? (
-            <div className="auth-error" style={{ marginTop: -8, marginBottom: 10 }}>
-              {fieldErrors.username}
-            </div>
-          ) : null}
+          <div className="auth-field">
+            <input
+              className={`auth-input ${fieldErrors.username ? "is-invalid" : ""}`}
+              placeholder="Username"
+              value={username}
+              onChange={(e) => {
+                setUsername(e.target.value);
+                clearFieldError("username");
+                setFormError("");
+              }}
+              aria-invalid={!!fieldErrors.username}
+              required
+            />
+            {fieldErrors.username ? (
+              <div className="auth-error">{fieldErrors.username}</div>
+            ) : null}
+          </div>
 
-          <input
-            className="auth-input"
-            type="password"
-            placeholder="Password"
-            value={password}
-            onChange={(e) => {
-              setPassword(e.target.value);
-              clearFieldError("password");
-              setFormError("");
-            }}
-            aria-invalid={!!fieldErrors.password}
-            style={fieldErrors.password ? { outline: "2px solid #e50914" } : undefined}
-            required
-          />
-          {fieldErrors.password ? (
-            <div className="auth-error" style={{ marginTop: -8, marginBottom: 10 }}>
-              {fieldErrors.password}
-            </div>
-          ) : null}
+          <div className="auth-field">
+            <input
+              className={`auth-input ${fieldErrors.password ? "is-invalid" : ""}`}
+              type="password"
+              placeholder="Password"
+              value={password}
+              onChange={(e) => {
+                setPassword(e.target.value);
+                clearFieldError("password");
+                setFormError("");
+              }}
+              aria-invalid={!!fieldErrors.password}
+              required
+            />
+            {fieldErrors.password ? (
+              <div className="auth-error">{fieldErrors.password}</div>
+            ) : null}
+          </div>
 
           <button className="auth-button" disabled={!canSubmit || loading}>
             {loading ? "Signing in..." : "Sign In"}
