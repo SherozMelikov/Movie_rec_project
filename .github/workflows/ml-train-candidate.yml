@@ -1,10 +1,10 @@
-name: ML Pipeline
+name: ML Train Candidate
 
 on:
   workflow_dispatch:
 
 jobs:
-  run-pipeline:
+  run-train-candidate:
     runs-on: ubuntu-latest
 
     defaults:
@@ -19,6 +19,7 @@ jobs:
       R2_SECRET_KEY: ${{ secrets.R2_SECRET_KEY }}
       R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
       R2_BUCKET: ${{ secrets.R2_BUCKET }}
+      AUTO_PROMOTE_IF_VALID: "false"
 
     steps:
       - name: Checkout repo
@@ -34,6 +35,6 @@ jobs:
           pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Run ML pipeline worker
+      - name: Run ML train/evaluate pipeline
         run: |
           python -m app.ml.scripts.run_worker_once
