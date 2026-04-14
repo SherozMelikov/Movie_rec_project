@@ -1,0 +1,58 @@
+name: ML Promote Candidate
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: "Run ID to promote, for example 2026-04-14T10-14-25Z"
+        required: true
+        type: string
+      allow_unvalidated:
+        description: "Allow promotion without validation"
+        required: true
+        default: false
+        type: boolean
+      cleanup_delay_hours:
+        description: "Cleanup delay in hours"
+        required: true
+        default: "24"
+        type: string
+
+jobs:
+  promote-candidate:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: backend
+
+    env:
+      SECRET_KEY: ${{ secrets.SECRET_KEY }}
+      USE_R2_ARTIFACTS: ${{ secrets.USE_R2_ARTIFACTS }}
+      R2_ACCESS_KEY: ${{ secrets.R2_ACCESS_KEY }}
+      R2_SECRET_KEY: ${{ secrets.R2_SECRET_KEY }}
+      R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+      R2_BUCKET: ${{ secrets.R2_BUCKET }}
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Promote selected run
+        shell: bash
+        run: |
+          CMD='python -m app.ml.scripts.promote_run_in_r2 --run-id "${{ inputs.run_id }}" --cleanup-delay-hours "${{ inputs.cleanup_delay_hours }}"'
+          if [ "${{ inputs.allow_unvalidated }}" = "true" ]; then
+            CMD="$CMD --allow-unvalidated"
+          fi
+          eval "$CMD"
