@@ -2,17 +2,30 @@
 # Run:
 #   python -m app.ml.scripts.eval_all_models
 
+import os
+import json
 from math import log2
+from datetime import datetime, timezone
+
 from sqlalchemy import text
+
 from app.db.database import SessionLocal
 from app.services.recommend_service import recommend_service
-from app.services.als_store import als_store
-from app.services.vector_index import vector_index
-import numpy as np
+from app.ml.recommenders.als_recommender import als_recommender
+from app.ml.recommenders.cbf_recommender import cbf_recommender
+from app.ml.recommenders.hybrid_recommender import hybrid_recommender
 
-K = 20
+DEFAULT_K = 20
 
-# IMPORTANT: quoted column names to match your DB schema
+METRICS_DIR = os.path.abspath(
+    os.path.join(
+        os.path.dirname(__file__),
+        "..",
+        "artifacts",
+        "metrics",
+    )
+)
+
 SQL_TEST = text("""
 SELECT DISTINCT ON (user_id)
   user_id, movie_id, ts
@@ -23,138 +36,397 @@ ORDER BY user_id, ts DESC;
 """)
 
 
+def ensure_metrics_dir() -> None:
+    os.makedirs(METRICS_DIR, exist_ok=True)
 
-def hit_ndcg(test_mid: int, ranked_ids: list[int]):
+
+def hit_ndcg(test_mid: int, ranked_ids: list[int]) -> tuple[int, float]:
     if test_mid not in ranked_ids:
         return 0, 0.0
     rank = ranked_ids.index(test_mid) + 1
     return 1, 1.0 / log2(rank + 1)
 
 
-def build_user_vec_from_seeds(seeds: list[int]):
-    vecs = []
-    for mid in seeds:
-        v = vector_index.get_vector(mid)
-        if v is not None:
-            vecs.append(v)
-    if not vecs:
-        return None
-
-    user_vec = np.mean(np.vstack(vecs), axis=0).astype(np.float32)
-    norm = float(np.linalg.norm(user_vec))
-    if norm > 0:
-        user_vec /= norm
-    return user_vec
-
-
-def evaluate():
-    db = SessionLocal()
-
-    # Load artifacts once
-    als_store.load()
-    if vector_index.index is None:
-        vector_index.load()
-
-    # Build idx->movie_id map (ALS)
-    idx_to_movie_id = {int(v): int(k) for k, v in als_store.movie_id_to_idx.items()}
-
-    rows = db.execute(SQL_TEST).fetchall()
-
-    results = {
-        "ALS": {"hit": 0, "ndcg": 0.0, "n": 0},
-        "CBF": {"hit": 0, "ndcg": 0.0, "n": 0},
-        "Hybrid": {"hit": 0, "ndcg": 0.0, "n": 0},
+def empty_stats() -> dict:
+    return {
+        "hit": 0,
+        "ndcg": 0.0,
+        "n": 0,
+        "eligible": 0,
+        "nonempty": 0,
     }
 
-    for user_id, test_mid, test_ts in rows:
-        user_id = int(user_id)
-        test_mid = int(test_mid)
 
-        # ----------------------
-        # HYBRID (your service)
-        # ----------------------
-        recs = recommend_service.get_for_user(db=db, user_id=user_id, limit=K, as_of_ts=test_ts)
-        hybrid_ids = [r.movie_id for r in recs]
-        h, n = hit_ndcg(test_mid, hybrid_ids)
-        results["Hybrid"]["hit"] += h
-        results["Hybrid"]["ndcg"] += n
-        results["Hybrid"]["n"] += 1
+def score_model(bucket: dict, test_mid: int, ranked_ids: list[int]) -> None:
+    bucket["eligible"] += 1
 
-        # Seeds (as-of filtered)
-        seeds = recommend_service._get_seed_movies_blended(db, user_id, as_of_ts=test_ts)
-        if not seeds:
-            continue
+    if ranked_ids:
+        bucket["nonempty"] += 1
 
-        user_vec = build_user_vec_from_seeds(seeds)
-        if user_vec is None:
-            continue
+    bucket["n"] += 1
+    h, n = hit_ndcg(test_mid, ranked_ids)
+    bucket["hit"] += h
+    bucket["ndcg"] += n
 
-        # Exclusions (as-of filtered history + seeds)
-        exclude = set(recommend_service._get_excluded_movie_ids(db, user_id, as_of_ts=test_ts))
-        exclude.update(seeds)
 
-        # ----------------------
-        # CBF ONLY (HNSW)
-        # ----------------------
-        hits = vector_index.search(user_vec, k=5000)  # or 10000 if still low
+def empty_group_results() -> dict:
+    return {
+        "ALS_FullCatalog": empty_stats(),
+        "CBF_Seeded": empty_stats(),
+        "Hybrid_Model": empty_stats(),
+        "Hybrid_Service": empty_stats(),
+    }
 
-        cbf_ids = []
-        for mid, _ in hits:
-            mid = int(mid)
-            if mid in exclude:
-                continue
-            cbf_ids.append(mid)
-            if len(cbf_ids) >= K:
-                break
 
-        h, n = hit_ndcg(test_mid, cbf_ids)
-        results["CBF"]["hit"] += h
-        results["CBF"]["ndcg"] += n
-        results["CBF"]["n"] += 1
+def finalize_model_stats(r: dict) -> dict:
+    n = r["n"]
+    if n == 0:
+        return {
+            "hitrate_at_k": None,
+            "ndcg_at_k": None,
+            "users": 0,
+            "eligible_users": r["eligible"],
+            "nonempty_recommendations": r["nonempty"],
+            "coverage_rate": 0.0,
+        }
 
-        # ----------------------
-        # ALS ONLY (TRUE ALS: score ALL items)
-        # ----------------------
-        if als_store.can_score_user(user_id):
-            uidx = als_store.user_id_to_idx[user_id]
-            uvec = als_store.user_factors[uidx]  # (factors,)
+    hitrate = r["hit"] / n
+    ndcg = r["ndcg"] / n
+    coverage_rate = (r["nonempty"] / r["eligible"]) if r["eligible"] > 0 else 0.0
 
-            # Score all items
-            scores = als_store.item_factors @ uvec  # (n_items,)
+    return {
+        "hitrate_at_k": hitrate,
+        "ndcg_at_k": ndcg,
+        "users": n,
+        "eligible_users": r["eligible"],
+        "nonempty_recommendations": r["nonempty"],
+        "coverage_rate": coverage_rate,
+    }
 
-            # Exclude items user already interacted with (as-of) and seed items
-            exclude_iidx = [
-                als_store.movie_id_to_idx[mid]
-                for mid in exclude
-                if mid in als_store.movie_id_to_idx
-            ]
-            if exclude_iidx:
-                scores[np.array(exclude_iidx, dtype=np.int32)] = -1e9
 
-            # Top-K selection
-            top_iidx = np.argpartition(-scores, K)[:K]
-            top_iidx = top_iidx[np.argsort(-scores[top_iidx])]
-            als_ids = [idx_to_movie_id[int(i)] for i in top_iidx]
+def detect_group(seeds: list[int], interaction_count: int) -> str:
+    if len(seeds) > 0:
+        return "warm"
+    if interaction_count == 0:
+        return "cold"
+    return "sparse"
 
-            h, n = hit_ndcg(test_mid, als_ids)
-            results["ALS"]["hit"] += h
-            results["ALS"]["ndcg"] += n
-            results["ALS"]["n"] += 1
 
-    db.close()
+def evaluate(k: int = DEFAULT_K) -> dict:
+    db = SessionLocal()
 
-    print(f"\nEvaluation results (K={K})\n")
-    print("{:<10} {:<12} {:<12} {:<10}".format("Model", f"HitRate@{K}", f"NDCG@{K}", "Users"))
-    print("-" * 50)
+    try:
+        rows = db.execute(SQL_TEST).fetchall()
 
-    for model, r in results.items():
-        n = r["n"]
-        if n == 0:
-            continue
-        hitrate = r["hit"] / n
-        ndcg = r["ndcg"] / n
-        print("{:<10} {:<12.4f} {:<12.4f} {:<10}".format(model, hitrate, ndcg, n))
+        overall_results = empty_group_results()
+        grouped_results = {
+            "warm": empty_group_results(),
+            "sparse": empty_group_results(),
+            "cold": empty_group_results(),
+        }
+
+        group_counts = {
+            "warm": 0,
+            "sparse": 0,
+            "cold": 0,
+        }
+
+        coverage_debug = {
+            "total_test_rows": len(rows),
+            "users_with_seeds": 0,
+            "users_without_seeds": 0,
+            "users_with_als": 0,
+            "users_with_cbf": 0,
+            "users_with_both": 0,
+            "users_with_neither": 0,
+        }
+
+        for row_idx, (user_id, test_mid, test_ts) in enumerate(rows):
+            user_id = int(user_id)
+            test_mid = int(test_mid)
+            debug_mode = row_idx < 5
+
+            seeds = recommend_service._get_seed_movies_blended(
+                db=db,
+                user_id=user_id,
+                as_of_ts=test_ts,
+            )
+            seeds = [mid for mid in seeds if mid != test_mid]
+
+            exclude = set(
+                recommend_service._get_excluded_movie_ids(
+                    db=db,
+                    user_id=user_id,
+                    as_of_ts=test_ts,
+                    max_rows=recommend_service.config.exclude_max_rows,
+                )
+            )
+            exclude.update(seeds)
+
+            # make sure the held-out target is not excluded
+            exclude.discard(test_mid)
+
+            interaction_count = recommend_service._interaction_count(
+                db=db,
+                user_id=user_id,
+                as_of_ts=test_ts,
+            )
+
+            has_als = als_recommender.can_score_user(user_id)
+            user_vec = cbf_recommender.build_user_vector(seeds) if seeds else None
+            has_cbf = user_vec is not None
+
+            group = detect_group(seeds=seeds, interaction_count=interaction_count)
+            group_counts[group] += 1
+
+            if seeds:
+                coverage_debug["users_with_seeds"] += 1
+            else:
+                coverage_debug["users_without_seeds"] += 1
+
+            if has_als:
+                coverage_debug["users_with_als"] += 1
+            if has_cbf:
+                coverage_debug["users_with_cbf"] += 1
+            if has_als and has_cbf:
+                coverage_debug["users_with_both"] += 1
+            if not has_als and not has_cbf:
+                coverage_debug["users_with_neither"] += 1
+
+            if debug_mode:
+                print("\n==============================")
+                print("ROW:", row_idx)
+                print("group:", group)
+                print("user_id:", user_id)
+                print("test_mid:", test_mid)
+                print("test_ts:", test_ts)
+                print("interaction_count:", interaction_count)
+                print("seed_count:", len(seeds))
+                print("seeds[:10]:", seeds[:10])
+                print("exclude_count:", len(exclude))
+                print("test_mid in exclude:", test_mid in exclude)
+                print("has_als:", has_als)
+                print("has_cbf:", has_cbf)
+
+            # -----------------------------
+            # Hybrid Service (production path)
+            # -----------------------------
+            hybrid_service_ids = []
+            try:
+                hybrid_service_ids = recommend_service.get_for_user_for_eval(
+                    db=db,
+                    user_id=user_id,
+                    limit=k,
+                    as_of_ts=test_ts,
+                    force_seed_ids=seeds,
+                    force_exclude_ids=exclude,
+                )
+            except Exception as e:
+                if debug_mode:
+                    print("\n--- HYBRID SERVICE ERROR ---")
+                    print("error:", repr(e))
+
+            score_model(overall_results["Hybrid_Service"], test_mid, hybrid_service_ids)
+            score_model(grouped_results[group]["Hybrid_Service"], test_mid, hybrid_service_ids)
+
+            if debug_mode:
+                print("\n--- HYBRID SERVICE DEBUG ---")
+                print("hybrid_service_ids[:20]:", hybrid_service_ids[:20])
+                print("test_mid in hybrid_service_ids:", test_mid in hybrid_service_ids)
+
+            # -----------------------------
+            # ALS full-catalog
+            # -----------------------------
+            als_ids = []
+            if has_als:
+                try:
+                    als_ids = als_recommender.top_n(
+                        user_id=user_id,
+                        exclude_ids=exclude,
+                        n=k,
+                    )
+                except Exception as e:
+                    if debug_mode:
+                        print("\n--- ALS ERROR ---")
+                        print("error:", repr(e))
+
+                score_model(overall_results["ALS_FullCatalog"], test_mid, als_ids)
+                score_model(grouped_results[group]["ALS_FullCatalog"], test_mid, als_ids)
+
+            if debug_mode:
+                print("\n--- ALS DEBUG ---")
+                print("als_ids[:20]:", als_ids[:20])
+                print("test_mid in als_ids:", test_mid in als_ids)
+
+            # -----------------------------
+            # CBF seeded
+            # -----------------------------
+            cbf_ids = []
+            if has_cbf:
+                try:
+                    cbf_ids, _ = cbf_recommender.top_n_from_seeds(
+                        seed_movie_ids=seeds,
+                        exclude_ids=exclude,
+                        n=k,
+                        search_k=5000,
+                    )
+                except Exception as e:
+                    if debug_mode:
+                        print("\n--- CBF ERROR ---")
+                        print("error:", repr(e))
+
+                score_model(overall_results["CBF_Seeded"], test_mid, cbf_ids)
+                score_model(grouped_results[group]["CBF_Seeded"], test_mid, cbf_ids)
+
+            if debug_mode:
+                print("\n--- CBF DEBUG ---")
+                print("cbf_ids[:20]:", cbf_ids[:20])
+                print("test_mid in cbf_ids:", test_mid in cbf_ids)
+
+            # -----------------------------
+            # Hybrid Model (direct model path)
+            # -----------------------------
+            hybrid_model_ids = []
+            hybrid_debug = None
+
+            if has_als or has_cbf:
+                try:
+                    hybrid_model_ids, _, _, hybrid_debug = hybrid_recommender.recommend_ids(
+                        user_id=user_id,
+                        seed_movie_ids=seeds,
+                        exclude_ids=exclude,
+                        limit=k,
+                        interaction_count=interaction_count,
+                        als_candidate_k=recommend_service.config.max_candidate_k,
+                        cbf_candidate_k=recommend_service.config.max_candidate_k,
+                        search_k=recommend_service.config.max_candidate_k,
+                        debug=False,
+                    )
+                except Exception as e:
+                    if debug_mode:
+                        print("\n--- HYBRID MODEL ERROR ---")
+                        print("error:", repr(e))
+
+                score_model(overall_results["Hybrid_Model"], test_mid, hybrid_model_ids)
+                score_model(grouped_results[group]["Hybrid_Model"], test_mid, hybrid_model_ids)
+
+            if debug_mode:
+                print("\n--- HYBRID MODEL DEBUG ---")
+                print("hybrid_model_ids[:20]:", hybrid_model_ids[:20])
+                print("test_mid in hybrid_model_ids:", test_mid in hybrid_model_ids)
+                if hybrid_debug is not None:
+                    print("hybrid_model_strategy:", hybrid_debug.strategy)
+                    print("hybrid_model_reason:", hybrid_debug.reason)
+                    print("hybrid_model_warnings:", hybrid_debug.warnings)
+
+                if als_ids and (test_mid in als_ids) and (test_mid not in hybrid_model_ids):
+                    print("[WARNING] Hybrid_Model lost a good ALS hit")
+
+            # Optional useful warning for service too
+            if debug_mode and als_ids and (test_mid in als_ids) and (test_mid not in hybrid_service_ids):
+                print("[WARNING] Hybrid_Service lost a good ALS hit")
+
+        summary = {
+            "evaluated_at_utc": datetime.now(timezone.utc).isoformat(),
+            "k": k,
+            "num_test_rows": len(rows),
+            "note": (
+                "This evaluation is useful for debugging and comparison, but ALS artifacts "
+                "may still contain temporal leakage if they were trained on the full interaction set."
+            ),
+            "group_counts": group_counts,
+            "coverage_debug": coverage_debug,
+            "overall_models": {},
+            "grouped_models": {},
+        }
+
+        print(f"\nOverall evaluation results (K={k})\n")
+        print("{:<18} {:<12} {:<12} {:<10} {:<10} {:<10}".format(
+            "Model", f"HitRate@{k}", f"NDCG@{k}", "Users", "Eligible", "NonEmpty"
+        ))
+        print("-" * 80)
+
+        for model, r in overall_results.items():
+            stats = finalize_model_stats(r)
+            summary["overall_models"][model] = stats
+
+            if stats["users"] > 0:
+                print("{:<18} {:<12.4f} {:<12.4f} {:<10} {:<10} {:<10}".format(
+                    model,
+                    stats["hitrate_at_k"],
+                    stats["ndcg_at_k"],
+                    stats["users"],
+                    stats["eligible_users"],
+                    stats["nonempty_recommendations"],
+                ))
+            else:
+                print("{:<18} {:<12} {:<12} {:<10} {:<10} {:<10}".format(
+                    model, "None", "None", 0, stats["eligible_users"], stats["nonempty_recommendations"]
+                ))
+
+        summary["grouped_models"] = {}
+
+        for group_name in ["warm", "sparse", "cold"]:
+            print(f"\nGroup: {group_name.upper()} (users={group_counts[group_name]})")
+            print("{:<18} {:<12} {:<12} {:<10} {:<10} {:<10}".format(
+                "Model", f"HitRate@{k}", f"NDCG@{k}", "Users", "Eligible", "NonEmpty"
+            ))
+            print("-" * 80)
+
+            summary["grouped_models"][group_name] = {}
+
+            for model, r in grouped_results[group_name].items():
+                stats = finalize_model_stats(r)
+                summary["grouped_models"][group_name][model] = stats
+
+                if stats["users"] > 0:
+                    print("{:<18} {:<12.4f} {:<12.4f} {:<10} {:<10} {:<10}".format(
+                        model,
+                        stats["hitrate_at_k"],
+                        stats["ndcg_at_k"],
+                        stats["users"],
+                        stats["eligible_users"],
+                        stats["nonempty_recommendations"],
+                    ))
+                else:
+                    print("{:<18} {:<12} {:<12} {:<10} {:<10} {:<10}".format(
+                        model, "None", "None", 0, stats["eligible_users"], stats["nonempty_recommendations"]
+                    ))
+
+        print("\nGroup counts:")
+        for key, value in group_counts.items():
+            print(f"- {key}: {value}")
+
+        print("\nCoverage debug:")
+        for key, value in coverage_debug.items():
+            print(f"- {key}: {value}")
+
+        return summary
+
+    finally:
+        db.close()
+
+
+def save_metrics(metrics: dict) -> str:
+    ensure_metrics_dir()
+
+    run_id = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H-%M-%SZ")
+    out_path = os.path.join(METRICS_DIR, f"eval_{run_id}.json")
+    latest_path = os.path.join(METRICS_DIR, "latest.json")
+
+    with open(out_path, "w", encoding="utf-8") as f:
+        json.dump(metrics, f, indent=2)
+
+    with open(latest_path, "w", encoding="utf-8") as f:
+        json.dump(metrics, f, indent=2)
+
+    return out_path
 
 
 if __name__ == "__main__":
-    evaluate()
+    metrics = evaluate(k=DEFAULT_K)
+    saved_to = save_metrics(metrics)
+
+    print("\nJSON summary:")
+    print(json.dumps(metrics, indent=2))
+    print(f"\n✅ Metrics saved to: {saved_to}")
