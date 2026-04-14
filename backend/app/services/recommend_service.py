@@ -72,7 +72,6 @@ class RecommendService:
     def _choose_strategy(
         self,
         has_als: bool,
-        # interaction_count: int,
         seed_movie_ids: list[int],
     ) -> tuple[str, str]:
         seed_count = len(seed_movie_ids)
@@ -108,7 +107,6 @@ class RecommendService:
 
         strategy, strategy_reason = self._choose_strategy(
             has_als=has_als,
-            interaction_count=interaction_count,
             seed_movie_ids=seed_movie_ids,
         )
 
@@ -291,7 +289,6 @@ class RecommendService:
 
         strategy, _ = self._choose_strategy(
             has_als=has_als,
-            interaction_count=interaction_count,
             seed_movie_ids=seed_movie_ids,
         )
 
