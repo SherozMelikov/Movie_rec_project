@@ -2,8 +2,7 @@ name: ML Pipeline
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: "17 2 * * *"
+
 jobs:
   run-pipeline:
     runs-on: ubuntu-latest
