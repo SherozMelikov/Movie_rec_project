@@ -1,0 +1,61 @@
+name: ML Cleanup Runs
+
+on:
+  workflow_dispatch:
+    inputs:
+      apply:
+        description: "Actually delete runs in R2"
+        required: true
+        default: false
+        type: boolean
+      ignore_cleanup_delay:
+        description: "Ignore cleanup_not_before_utc and allow cleanup immediately"
+        required: true
+        default: false
+        type: boolean
+
+jobs:
+  cleanup-runs:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: backend
+
+    env:
+      SECRET_KEY: ${{ secrets.SECRET_KEY }}
+      USE_R2_ARTIFACTS: ${{ secrets.USE_R2_ARTIFACTS }}
+      R2_ACCESS_KEY: ${{ secrets.R2_ACCESS_KEY }}
+      R2_SECRET_KEY: ${{ secrets.R2_SECRET_KEY }}
+      R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+      R2_BUCKET: ${{ secrets.R2_BUCKET }}
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Cleanup old runs in R2
+        shell: bash
+        run: |
+          CMD='python -m app.ml.scripts.cleanup_r2_runs'
+
+          if [ "${{ inputs.apply }}" = "true" ]; then
+            CMD="$CMD --apply"
+          fi
+
+          if [ "${{ inputs.ignore_cleanup_delay }}" = "true" ]; then
+            CMD="$CMD --ignore-cleanup-delay"
+          fi
+
+          echo "Running: $CMD"
+          eval "$CMD"
