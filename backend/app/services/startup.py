@@ -8,7 +8,7 @@ from app.services.als_store import als_store
 from app.services.vector_index import vector_index
 from app.services.r2_restore_service import ensure_production_run_restored
 
-_REFRESH_INTERVAL_SECONDS = 30  # use 300 on Render later
+_REFRESH_INTERVAL_SECONDS = 300  # use 300 on Render later
 
 
 def _reload_runtime_artifacts() -> None:
