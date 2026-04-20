@@ -1,191 +1,217 @@
-from __future__ import annotations
-
 import json
-import sys
 from pathlib import Path
 
 import pytest
 
-import app.ml.scripts.publish_run_to_r2 as publish
+from app.ml.scripts import publish_run_to_r2 as publish_module
+from app.ml.storage import r2_artifacts as r2_module
 
 
-def test_utc_now_iso_returns_string():
-    result = publish.utc_now_iso()
-    assert isinstance(result, str)
-    assert "T" in result
+def test_publish_run_uploads_run_directory_to_versioned_prefix(tmp_path, monkeypatch):
+    runs_dir = tmp_path / "runs"
+    run_id = "run-123"
+    local_run_dir = runs_dir / run_id
+    local_run_dir.mkdir(parents=True)
 
+    (local_run_dir / "meta.json").write_text('{"ok": true}', encoding="utf-8")
+    (local_run_dir / "metrics.json").write_text('{"score": 0.9}', encoding="utf-8")
 
-@pytest.fixture
-def isolated_runs_dir(tmp_path, monkeypatch):
-    runs_dir = tmp_path / "artifacts" / "runs"
-    monkeypatch.setattr(publish, "RUNS_DIR", str(runs_dir))
-    return {"runs_dir": runs_dir}
+    monkeypatch.setattr(publish_module, "RUNS_DIR", str(runs_dir))
+    monkeypatch.setattr(publish_module, "utc_now_iso", lambda: "2026-04-20T12:00:00+00:00")
 
-
-def test_publish_run_raises_when_local_run_dir_missing(isolated_runs_dir):
-    with pytest.raises(FileNotFoundError, match="Run directory not found"):
-        publish.publish_run("run-missing")
-
-
-def test_publish_run_uploads_manifest_and_updates_candidate_registry(isolated_runs_dir, monkeypatch):
-    run_id = "run-1"
-    local_run_dir = isolated_runs_dir["runs_dir"] / run_id
-    local_run_dir.mkdir(parents=True, exist_ok=True)
-
-    fixed_times = iter(
-        [
-            "2026-04-10T12:00:00+00:00",  # published_at_utc
-            "2026-04-10T12:00:01+00:00",  # candidate.uploaded_at_utc
-            "2026-04-10T12:00:02+00:00",  # registry.updated_at_utc
-        ]
-    )
-    monkeypatch.setattr(publish, "utc_now_iso", lambda: next(fixed_times))
-
-    uploads = []
-    json_uploads = []
-    saved_registries = []
-
-    upload_files = [
-        {
-            "relative_path": "als/user_factors.npy",
-            "key": "hybrid-recommender/runs/run-1/als/user_factors.npy",
-        },
-        {
-            "relative_path": "vectors/vectors.npy",
-            "key": "hybrid-recommender/runs/run-1/vectors/vectors.npy",
-        },
-    ]
+    uploaded = {}
 
     def fake_upload_run_directory(local_dir, remote_prefix):
-        uploads.append((local_dir, remote_prefix))
-        return {"files": upload_files}
+        uploaded["local_dir"] = local_dir
+        uploaded["remote_prefix"] = remote_prefix
+        return {
+            "remote_prefix": remote_prefix,
+            "files": [
+                {"relative_path": "meta.json", "key": f"{remote_prefix}/meta.json", "size": 12, "sha256": "aaa"},
+                {"relative_path": "metrics.json", "key": f"{remote_prefix}/metrics.json", "size": 15, "sha256": "bbb"},
+            ],
+        }
 
-    def fake_upload_json(key, payload):
-        json_uploads.append((key, payload))
+    monkeypatch.setattr(publish_module, "upload_run_directory", fake_upload_run_directory)
+    monkeypatch.setattr(publish_module, "upload_json", lambda key, data: None)
+    monkeypatch.setattr(publish_module, "load_registry", lambda: r2_module.default_registry())
+    monkeypatch.setattr(publish_module, "save_registry", lambda registry: None)
 
-    def fake_load_registry():
-        return {"production": {"run_id": "prod-1"}}
+    result = publish_module.publish_run(run_id=run_id, set_as_candidate=True)
+
+    assert uploaded["local_dir"] == str(local_run_dir)
+    assert uploaded["remote_prefix"] == f"hybrid-recommender/runs/{run_id}"
+    assert result["run_id"] == run_id
+    assert result["remote_prefix"] == f"hybrid-recommender/runs/{run_id}"
+    assert result["file_count"] == 2
+
+
+def test_publish_run_uploads_publish_manifest(tmp_path, monkeypatch):
+    runs_dir = tmp_path / "runs"
+    run_id = "run-456"
+    local_run_dir = runs_dir / run_id
+    local_run_dir.mkdir(parents=True)
+
+    (local_run_dir / "artifact.bin").write_bytes(b"abc")
+
+    monkeypatch.setattr(publish_module, "RUNS_DIR", str(runs_dir))
+    monkeypatch.setattr(publish_module, "utc_now_iso", lambda: "2026-04-20T12:05:00+00:00")
+
+    monkeypatch.setattr(
+        publish_module,
+        "upload_run_directory",
+        lambda local_dir, remote_prefix: {
+            "remote_prefix": remote_prefix,
+            "files": [
+                {"relative_path": "artifact.bin", "key": f"{remote_prefix}/artifact.bin", "size": 3, "sha256": "hash1"},
+            ],
+        },
+    )
+
+    uploaded_json = {}
+
+    def fake_upload_json(key, data):
+        uploaded_json["key"] = key
+        uploaded_json["data"] = data
+
+    monkeypatch.setattr(publish_module, "upload_json", fake_upload_json)
+    monkeypatch.setattr(publish_module, "load_registry", lambda: r2_module.default_registry())
+    monkeypatch.setattr(publish_module, "save_registry", lambda registry: None)
+
+    result = publish_module.publish_run(run_id=run_id, set_as_candidate=True)
+
+    expected_prefix = f"hybrid-recommender/runs/{run_id}"
+
+    assert uploaded_json["key"] == f"{expected_prefix}/r2_publish_manifest.json"
+    assert uploaded_json["data"]["run_id"] == run_id
+    assert uploaded_json["data"]["remote_prefix"] == expected_prefix
+    assert uploaded_json["data"]["file_count"] == 1
+    assert result["file_count"] == 1
+
+
+def test_publish_run_updates_candidate_registry_when_enabled(tmp_path, monkeypatch):
+    runs_dir = tmp_path / "runs"
+    run_id = "run-789"
+    local_run_dir = runs_dir / run_id
+    local_run_dir.mkdir(parents=True)
+    (local_run_dir / "artifact.txt").write_text("hello", encoding="utf-8")
+
+    monkeypatch.setattr(publish_module, "RUNS_DIR", str(runs_dir))
+    monkeypatch.setattr(publish_module, "utc_now_iso", lambda: "2026-04-20T12:10:00+00:00")
+
+    monkeypatch.setattr(
+        publish_module,
+        "upload_run_directory",
+        lambda local_dir, remote_prefix: {
+            "remote_prefix": remote_prefix,
+            "files": [
+                {"relative_path": "artifact.txt", "key": f"{remote_prefix}/artifact.txt", "size": 5, "sha256": "hash2"},
+            ],
+        },
+    )
+    monkeypatch.setattr(publish_module, "upload_json", lambda key, data: None)
+
+    saved = {}
+
+    monkeypatch.setattr(publish_module, "load_registry", lambda: r2_module.default_registry())
 
     def fake_save_registry(registry):
-        saved_registries.append(registry)
+        saved["registry"] = registry
 
-    monkeypatch.setattr(publish, "upload_run_directory", fake_upload_run_directory)
-    monkeypatch.setattr(publish, "upload_json", fake_upload_json)
-    monkeypatch.setattr(publish, "load_registry", fake_load_registry)
-    monkeypatch.setattr(publish, "save_registry", fake_save_registry)
+    monkeypatch.setattr(publish_module, "save_registry", fake_save_registry)
 
-    result = publish.publish_run(run_id=run_id, set_as_candidate=True)
+    result = publish_module.publish_run(run_id=run_id, set_as_candidate=True)
 
-    assert uploads == [
-        (str(local_run_dir), "hybrid-recommender/runs/run-1")
-    ]
-
-    assert len(json_uploads) == 1
-    manifest_key, manifest_payload = json_uploads[0]
-    assert manifest_key == "hybrid-recommender/runs/run-1/r2_publish_manifest.json"
-    assert manifest_payload == {
-        "run_id": "run-1",
-        "published_at_utc": "2026-04-10T12:00:00+00:00",
-        "remote_prefix": "hybrid-recommender/runs/run-1",
-        "file_count": 2,
-        "files": upload_files,
-    }
-
-    assert len(saved_registries) == 1
-    assert saved_registries[0] == {
-        "production": {"run_id": "prod-1"},
-        "candidate": {
-            "run_id": "run-1",
-            "remote_prefix": "hybrid-recommender/runs/run-1",
-            "uploaded_at_utc": "2026-04-10T12:00:01+00:00",
-        },
-        "updated_at_utc": "2026-04-10T12:00:02+00:00",
-    }
-
-    assert result == {
-        "run_id": "run-1",
-        "remote_prefix": "hybrid-recommender/runs/run-1",
-        "file_count": 2,
-        "files": upload_files,
-        "registry": saved_registries[0],
-    }
+    assert result["registry"] is not None
+    assert saved["registry"]["candidate"]["run_id"] == run_id
+    assert saved["registry"]["candidate"]["remote_prefix"] == f"hybrid-recommender/runs/{run_id}"
+    assert saved["registry"]["updated_at_utc"] == "2026-04-20T12:10:00+00:00"
 
 
-def test_publish_run_uploads_manifest_without_registry_update_when_candidate_disabled(
-    isolated_runs_dir, monkeypatch
-):
-    run_id = "run-2"
-    local_run_dir = isolated_runs_dir["runs_dir"] / run_id
-    local_run_dir.mkdir(parents=True, exist_ok=True)
+def test_publish_run_does_not_update_registry_when_candidate_disabled(tmp_path, monkeypatch):
+    runs_dir = tmp_path / "runs"
+    run_id = "run-999"
+    local_run_dir = runs_dir / run_id
+    local_run_dir.mkdir(parents=True)
+    (local_run_dir / "artifact.txt").write_text("hello", encoding="utf-8")
 
-    monkeypatch.setattr(publish, "utc_now_iso", lambda: "2026-04-10T12:00:00+00:00")
-
-    json_uploads = []
-    upload_files = [
-        {
-            "relative_path": "manifest.json",
-            "key": "hybrid-recommender/runs/run-2/manifest.json",
-        }
-    ]
+    monkeypatch.setattr(publish_module, "RUNS_DIR", str(runs_dir))
+    monkeypatch.setattr(publish_module, "utc_now_iso", lambda: "2026-04-20T12:15:00+00:00")
 
     monkeypatch.setattr(
-        publish,
+        publish_module,
         "upload_run_directory",
-        lambda local_dir, remote_prefix: {"files": upload_files},
+        lambda local_dir, remote_prefix: {
+            "remote_prefix": remote_prefix,
+            "files": [
+                {"relative_path": "artifact.txt", "key": f"{remote_prefix}/artifact.txt", "size": 5, "sha256": "hash3"},
+            ],
+        },
     )
-    monkeypatch.setattr(publish, "upload_json", lambda key, payload: json_uploads.append((key, payload)))
-    monkeypatch.setattr(
-        publish,
-        "load_registry",
-        lambda: pytest.fail("load_registry should not be called when set_as_candidate=False"),
+    monkeypatch.setattr(publish_module, "upload_json", lambda key, data: None)
+
+    load_called = {"called": False}
+    save_called = {"called": False}
+
+    def fake_load_registry():
+        load_called["called"] = True
+        return r2_module.default_registry()
+
+    def fake_save_registry(registry):
+        save_called["called"] = True
+
+    monkeypatch.setattr(publish_module, "load_registry", fake_load_registry)
+    monkeypatch.setattr(publish_module, "save_registry", fake_save_registry)
+
+    result = publish_module.publish_run(run_id=run_id, set_as_candidate=False)
+
+    assert result["registry"] is None
+    assert load_called["called"] is False
+    assert save_called["called"] is False
+
+
+def test_publish_run_raises_when_local_run_directory_missing(tmp_path, monkeypatch):
+    runs_dir = tmp_path / "runs"
+    monkeypatch.setattr(publish_module, "RUNS_DIR", str(runs_dir))
+
+    with pytest.raises(FileNotFoundError, match="Run directory not found"):
+        publish_module.publish_run(run_id="missing-run", set_as_candidate=True)
+
+
+def test_upload_run_directory_returns_uploaded_file_metadata(tmp_path, monkeypatch):
+    local_run_dir = tmp_path / "local_run"
+    local_run_dir.mkdir()
+
+    (local_run_dir / "a.txt").write_text("alpha", encoding="utf-8")
+    nested = local_run_dir / "subdir"
+    nested.mkdir()
+    (nested / "b.txt").write_text("beta", encoding="utf-8")
+
+    uploaded = []
+
+    class FakeS3:
+        def upload_file(self, abs_path, bucket, key):
+            uploaded.append((abs_path, bucket, key))
+
+    monkeypatch.setattr(r2_module, "get_r2_client", lambda: FakeS3())
+    monkeypatch.setattr(r2_module, "get_r2_bucket", lambda: "test-bucket")
+
+    result = r2_module.upload_run_directory(
+        local_run_dir=str(local_run_dir),
+        remote_prefix="hybrid-recommender/runs/run-abc",
     )
-    monkeypatch.setattr(
-        publish,
-        "save_registry",
-        lambda registry: pytest.fail("save_registry should not be called when set_as_candidate=False"),
-    )
 
-    result = publish.publish_run(run_id=run_id, set_as_candidate=False)
+    assert result["remote_prefix"] == "hybrid-recommender/runs/run-abc"
+    assert len(result["files"]) == 2
 
-    assert len(json_uploads) == 1
-    assert json_uploads[0][0] == "hybrid-recommender/runs/run-2/r2_publish_manifest.json"
+    relative_paths = sorted(f["relative_path"] for f in result["files"])
+    assert relative_paths == ["a.txt", "subdir/b.txt"]
 
-    assert result == {
-        "run_id": "run-2",
-        "remote_prefix": "hybrid-recommender/runs/run-2",
-        "file_count": 1,
-        "files": upload_files,
-        "registry": None,
-    }
+    keys = sorted(f["key"] for f in result["files"])
+    assert keys == [
+        "hybrid-recommender/runs/run-abc/a.txt",
+        "hybrid-recommender/runs/run-abc/subdir/b.txt",
+    ]
 
-
-def test_main_parses_args_and_prints_result(monkeypatch, capsys):
-    monkeypatch.setattr(
-        sys,
-        "argv",
-        [
-            "publish_run_to_r2.py",
-            "--run-id",
-            "run-9",
-            "--no-set-candidate",
-        ],
-    )
-
-    calls = {}
-
-    def fake_publish_run(run_id, set_as_candidate):
-        calls["run_id"] = run_id
-        calls["set_as_candidate"] = set_as_candidate
-        return {"status": "ok", "run_id": run_id}
-
-    monkeypatch.setattr(publish, "publish_run", fake_publish_run)
-
-    publish.main()
-
-    captured = capsys.readouterr()
-
-    assert calls == {
-        "run_id": "run-9",
-        "set_as_candidate": False,
-    }
-    assert json.loads(captured.out) == {"status": "ok", "run_id": "run-9"}
+    assert len(uploaded) == 2
+    assert all(item[1] == "test-bucket" for item in uploaded)

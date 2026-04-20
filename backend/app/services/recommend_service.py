@@ -160,24 +160,32 @@ class RecommendService:
             )
 
         elif strategy == "hybrid_light":
-            hybrid_ids, hybrid_scores, hybrid_reason, debug_info = hybrid_recommender.recommend_ids(
-                user_id=user_id,
-                seed_movie_ids=seed_movie_ids,
-                exclude_ids=exclude_ids,
-                limit=limit,
-                interaction_count=interaction_count,
-                als_candidate_k=self.config.als_candidate_k,
-                cbf_candidate_k=min(
-                    max(self.config.min_candidate_k, limit * self.config.candidate_multiplier),
-                    self.config.max_candidate_k,
-                ),
-                search_k=min(
-                    max(self.config.min_candidate_k, limit * self.config.candidate_multiplier),
-                    self.config.max_candidate_k,
-                ),
-                debug=self.config.debug_rerank,
-            )
-
+            try:
+                hybrid_ids, hybrid_scores, hybrid_reason, debug_info = hybrid_recommender.recommend_ids(
+                    user_id=user_id,
+                    seed_movie_ids=seed_movie_ids,
+                    exclude_ids=exclude_ids,
+                    limit=limit,
+                    interaction_count=interaction_count,
+                    als_candidate_k=self.config.als_candidate_k,
+                    cbf_candidate_k=min(
+                        max(self.config.min_candidate_k, limit * self.config.candidate_multiplier),
+                        self.config.max_candidate_k,
+                    ),
+                    search_k=min(
+                        max(self.config.min_candidate_k, limit * self.config.candidate_multiplier),
+                        self.config.max_candidate_k,
+                    ),
+                    debug=self.config.debug_rerank,
+                )
+            except Exception as e:
+                logger.exception(
+                    "hybrid_recommendation_failed",
+                    extra={"user_id": user_id, "interaction_count": interaction_count},
+                )
+                hybrid_ids, hybrid_scores, hybrid_reason = [], {}, "Hybrid failed"
+                debug_info = None
+                
             logger.info(
                 "hybrid_result",
                 extra={

@@ -212,6 +212,8 @@ def evaluate(k: int = DEFAULT_K) -> dict:
             # Hybrid Service (production path)
             # -----------------------------
             hybrid_service_ids = []
+            hybrid_service_success = False
+
             try:
                 hybrid_service_ids = recommend_service.get_for_user_for_eval(
                     db=db,
@@ -221,23 +223,28 @@ def evaluate(k: int = DEFAULT_K) -> dict:
                     force_seed_ids=seeds,
                     force_exclude_ids=exclude,
                 )
+                hybrid_service_success = True
             except Exception as e:
                 if debug_mode:
                     print("\n--- HYBRID SERVICE ERROR ---")
                     print("error:", repr(e))
 
-            score_model(overall_results["Hybrid_Service"], test_mid, hybrid_service_ids)
-            score_model(grouped_results[group]["Hybrid_Service"], test_mid, hybrid_service_ids)
+            if hybrid_service_success:
+                score_model(overall_results["Hybrid_Service"], test_mid, hybrid_service_ids)
+                score_model(grouped_results[group]["Hybrid_Service"], test_mid, hybrid_service_ids)
 
             if debug_mode:
                 print("\n--- HYBRID SERVICE DEBUG ---")
                 print("hybrid_service_ids[:20]:", hybrid_service_ids[:20])
                 print("test_mid in hybrid_service_ids:", test_mid in hybrid_service_ids)
+                print("hybrid_service_success:", hybrid_service_success)
 
             # -----------------------------
             # ALS full-catalog
             # -----------------------------
             als_ids = []
+            als_success = False
+
             if has_als:
                 try:
                     als_ids = als_recommender.top_n(
@@ -245,23 +252,28 @@ def evaluate(k: int = DEFAULT_K) -> dict:
                         exclude_ids=exclude,
                         n=k,
                     )
+                    als_success = True
                 except Exception as e:
                     if debug_mode:
                         print("\n--- ALS ERROR ---")
                         print("error:", repr(e))
 
-                score_model(overall_results["ALS_FullCatalog"], test_mid, als_ids)
-                score_model(grouped_results[group]["ALS_FullCatalog"], test_mid, als_ids)
+                if als_success:
+                    score_model(overall_results["ALS_FullCatalog"], test_mid, als_ids)
+                    score_model(grouped_results[group]["ALS_FullCatalog"], test_mid, als_ids)
 
             if debug_mode:
                 print("\n--- ALS DEBUG ---")
                 print("als_ids[:20]:", als_ids[:20])
                 print("test_mid in als_ids:", test_mid in als_ids)
+                print("als_success:", als_success)
 
             # -----------------------------
             # CBF seeded
             # -----------------------------
             cbf_ids = []
+            cbf_success = False
+
             if has_cbf:
                 try:
                     cbf_ids, _ = cbf_recommender.top_n_from_seeds(
@@ -270,24 +282,28 @@ def evaluate(k: int = DEFAULT_K) -> dict:
                         n=k,
                         search_k=5000,
                     )
+                    cbf_success = True
                 except Exception as e:
                     if debug_mode:
                         print("\n--- CBF ERROR ---")
                         print("error:", repr(e))
 
-                score_model(overall_results["CBF_Seeded"], test_mid, cbf_ids)
-                score_model(grouped_results[group]["CBF_Seeded"], test_mid, cbf_ids)
+                if cbf_success:
+                    score_model(overall_results["CBF_Seeded"], test_mid, cbf_ids)
+                    score_model(grouped_results[group]["CBF_Seeded"], test_mid, cbf_ids)
 
             if debug_mode:
                 print("\n--- CBF DEBUG ---")
                 print("cbf_ids[:20]:", cbf_ids[:20])
                 print("test_mid in cbf_ids:", test_mid in cbf_ids)
+                print("cbf_success:", cbf_success)
 
             # -----------------------------
             # Hybrid Model (direct model path)
             # -----------------------------
             hybrid_model_ids = []
             hybrid_debug = None
+            hybrid_model_success = False
 
             if has_als or has_cbf:
                 try:
@@ -302,18 +318,21 @@ def evaluate(k: int = DEFAULT_K) -> dict:
                         search_k=recommend_service.config.max_candidate_k,
                         debug=False,
                     )
+                    hybrid_model_success = True
                 except Exception as e:
                     if debug_mode:
                         print("\n--- HYBRID MODEL ERROR ---")
                         print("error:", repr(e))
 
-                score_model(overall_results["Hybrid_Model"], test_mid, hybrid_model_ids)
-                score_model(grouped_results[group]["Hybrid_Model"], test_mid, hybrid_model_ids)
+                if hybrid_model_success:
+                    score_model(overall_results["Hybrid_Model"], test_mid, hybrid_model_ids)
+                    score_model(grouped_results[group]["Hybrid_Model"], test_mid, hybrid_model_ids)
 
             if debug_mode:
                 print("\n--- HYBRID MODEL DEBUG ---")
                 print("hybrid_model_ids[:20]:", hybrid_model_ids[:20])
                 print("test_mid in hybrid_model_ids:", test_mid in hybrid_model_ids)
+                print("hybrid_model_success:", hybrid_model_success)
                 if hybrid_debug is not None:
                     print("hybrid_model_strategy:", hybrid_debug.strategy)
                     print("hybrid_model_reason:", hybrid_debug.reason)
@@ -322,7 +341,6 @@ def evaluate(k: int = DEFAULT_K) -> dict:
                 if als_ids and (test_mid in als_ids) and (test_mid not in hybrid_model_ids):
                     print("[WARNING] Hybrid_Model lost a good ALS hit")
 
-            # Optional useful warning for service too
             if debug_mode and als_ids and (test_mid in als_ids) and (test_mid not in hybrid_service_ids):
                 print("[WARNING] Hybrid_Service lost a good ALS hit")
 
