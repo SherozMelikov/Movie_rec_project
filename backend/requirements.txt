@@ -36,6 +36,7 @@ python-dateutil==2.9.0.post0
 python-dotenv==1.2.1
 python-jose==3.5.0
 pytz==2025.2
+pytest==9.0.3
 requests==2.32.5
 rsa==4.9.1
 s3transfer==0.16.0
