@@ -1,70 +1,124 @@
-# Getting Started with Create React App
+# 🎨 Frontend – Movie Recommendation System
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+## 📌 Overview
 
-## Available Scripts
+The frontend is built using **React** and provides the user interface for the movie recommendation system.
 
-In the project directory, you can run:
+It is responsible for:
 
-### `npm start`
+* user registration and login
+* onboarding for cold-start personalization
+* browsing movies
+* viewing movie details
+* displaying personalized recommendation sections
+* sending likes and ratings to the backend
+* managing protected routes and authentication state
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+---
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+## 🏗️ Architecture
 
-### `npm test`
+The frontend follows a component-based structure:
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+```text
+Pages → Components → API Layer → Backend
+```
 
-### `npm run build`
+---
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+## 📁 Project Structure
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+```text
+src/
+  api/         # API communication layer
+  components/  # reusable UI components
+  context/     # global auth state
+  hooks/       # custom hooks
+  pages/       # route-level pages
+  styles/      # styling
+  App.js       # main routing setup
+  config.js    # frontend configuration
+  index.js     # application entry point
+```
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+---
 
-### `npm run eject`
+## 📄 Main Pages
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+* `GetStarted.jsx` → landing / introduction page
+* `Home.jsx` → main movie browsing page
+* `Login.jsx` → user login
+* `Register.jsx` → user registration
+* `OnboardingWizard.jsx` → collect initial preferences
+* `MovieDetails.jsx` → detailed view of a movie
+* `Recommendations.jsx` → personalized recommendation sections
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+---
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+## 🧩 Components
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+Reusable UI components include:
 
-## Learn More
+* `Navbar.jsx` → navigation bar
+* `MovieCard.jsx` → single movie display
+* `MovieGrid.jsx` → grid layout for movies
+* `MovieRow.jsx` → horizontal recommendation rows
+* `Loader.jsx` → loading state
+* `ProtectedRoute.jsx` → route protection for authenticated pages
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+---
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+## 🔌 API Integration
 
-### Code Splitting
+The frontend communicates with the FastAPI backend through `src/api/api.js`.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+It handles:
 
-### Analyzing the Bundle Size
+* authentication requests
+* movie retrieval
+* recommendations
+* likes
+* ratings
+* onboarding submissions
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+---
 
-### Making a Progressive Web App
+## 🔐 Authentication
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+Authentication state is managed using:
 
-### Advanced Configuration
+* `AuthContext.js` → global auth context
+* `useAuth.js` → custom hook for auth access
+* `ProtectedRoute.jsx` → prevents access to protected pages for unauthenticated users
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+---
 
-### Deployment
+## 🚀 Running Frontend Locally
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+```bash
+cd frontend
+npm install
+npm start
+```
 
-### `npm run build` fails to minify
+For production build:
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+```bash
+npm run build
+```
+
+---
+
+## 🔐 Environment Variables
+
+Required variables:
+
+* `VITE_API_BASE_URL` or frontend API base URL configuration used by the project
+
+---
+
+## 🧠 Notes
+
+* The frontend is designed to work with the FastAPI backend
+* Personalized recommendations are rendered from backend API responses
+* Onboarding helps reduce the cold-start problem for new users
