@@ -1,6 +1,6 @@
 # app/schemas/schemas.py
 from datetime import date, datetime
-from pydantic import BaseModel, Field, EmailStr
+from pydantic import BaseModel, Field, EmailStr , field_validator
 from typing import Literal, Optional
 
 
@@ -9,24 +9,26 @@ class MovieSchema(BaseModel):
     title: str
     genres: str
 
-    class Config:
-        orm_mode = True
+    model_config = {"from_attributes": True}
 class UserCreate(BaseModel):
-    username: str
+    username: str = Field(..., min_length=3, max_length=30)
     email: EmailStr
-    password: str
+    password: str = Field(..., min_length=8, max_length=128)
 
+    @field_validator("username")
+    @classmethod
+    def strip_username(cls, v: str) -> str:
+        return v.strip()
+    
 class UserLogin(BaseModel):
-    username: str
-    password: str
-
+    username: str = Field(..., min_length=1, max_length=30)
+    password: str = Field(..., min_length=1, max_length=128)
 class UserOut(BaseModel):
     user_id: int
     username: str
     email: str
 
-    class Config:
-        orm_mode = True
+    model_config = {"from_attributes": True}
 
 # Request schema for creating a rating
 class RatingCreate(BaseModel):
@@ -41,9 +43,7 @@ class RatingOut(BaseModel):
     score: int
     created_at: datetime
 
-    class Config:
-        orm_mode = True
-
+    model_config = {"from_attributes": True}
 
 class LikeCreate(BaseModel):
     movie_id: int
@@ -54,8 +54,7 @@ class LikeOut(BaseModel):
     movie_id: int
     created_at: datetime
 
-    class Config:
-        orm_mode = True
+    model_config = {"from_attributes": True}
 
 class TagCreate(BaseModel):
     
@@ -69,8 +68,7 @@ class TagOut(BaseModel):
     tag: str
     created_at: datetime
 
-    class Config:
-        orm_mode = True
+    model_config = {"from_attributes": True}
 
 class EventCreate(BaseModel):
     movie_id: int
@@ -82,8 +80,7 @@ class EventOut(BaseModel):
     event_type: str
     ts: datetime
 
-    class Config:
-        orm_mode = True
+    model_config = {"from_attributes": True}
 
 class OnboardingCreate(BaseModel):
     #favorite_genres: list[str] = Field(..., min_length=3, max_length=5)
@@ -94,8 +91,7 @@ class OnboardingOut(BaseModel):
     #favorite_genres: list[str]
     picked_movie_ids: list[int]
 
-    class Config:
-        orm_mode = True
+    model_config = {"from_attributes": True}
 
 class RecommendationItem(BaseModel):
     movie_id: int
@@ -108,8 +104,7 @@ class RecommendationItem(BaseModel):
     reason: Optional[str] = None
     score: Optional[float] = None
 
-    class Config:
-        orm_mode = True
+    model_config = {"from_attributes": True}
         
 class RecommendationSection(BaseModel):
     title: str
@@ -125,7 +120,6 @@ class MovieOut(BaseModel):
     overview: Optional[str] = None
     release_date: Optional[date] = None
 
-    class Config:
-        orm_mode = True
+    model_config = {"from_attributes": True}
         
 
